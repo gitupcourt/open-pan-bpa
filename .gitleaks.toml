@@ -1,0 +1,21 @@
+# Gitleaks configuration — extends the default ruleset.
+[extend]
+useDefault = true
+
+# Defense-in-depth: fail on files that should never be committed at all.
+# (These are also gitignored; gitleaks catches force-adds.)
+[[rules]]
+id = "pan-config-file"
+description = "PAN-OS configuration or tech support artifact committed"
+path = '''(?i)(techsupport|tech-support|running-config|merged-running-config).*\.(xml|tgz|tar\.gz|txt)$'''
+
+[[rules]]
+id = "pan-api-key"
+description = "PAN-OS XML API key material"
+regex = '''(?i)(LUFRPT[0-9A-Za-z+/=]{20,})'''
+
+[allowlist]
+description = "Synthetic test data only"
+paths = [
+  '''internal/.*/testdata/.*''',
+]

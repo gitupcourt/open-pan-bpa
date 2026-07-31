@@ -1,0 +1,26 @@
+# Session/agent files — never committed
+CLAUDE.md
+.claude/
+
+# Customer data / fixtures — never committed (see SECURITY.md)
+fixtures/
+*.tgz
+*.tar.gz
+*techsupport*
+*tech-support*
+running-config*.xml
+merged-running-config*.xml
+bpa-report*.json
+bpa-report*.html
+
+# Build artifacts
+/bpa
+/bpa.exe
+dist/
+coverage.out
+
+# Editor/OS noise
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
