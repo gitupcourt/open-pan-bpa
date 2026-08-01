@@ -1,0 +1,22 @@
+version: 2
+
+# Dependabot for open-pan-bpa.
+#   - github-actions: keep the security-gate workflow's actions patched (active now).
+#   - gomod: activates automatically once go.mod lands with the Phase-0 scaffold.
+# Dependabot *alerts* + security updates are enabled at the repo level (free on
+# private repos); this file governs scheduled version-update PRs.
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
