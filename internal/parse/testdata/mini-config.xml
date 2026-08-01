@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<!-- Synthetic test configuration. Hand-written for unit tests; resembles no
+     real device. Do not add real-device content here (see SECURITY.md). -->
+<config version="11.1.0">
+  <mgt-config>
+    <password-complexity>
+      <enabled>yes</enabled>
+      <minimum-length>8</minimum-length>
+      <minimum-uppercase-letters>1</minimum-uppercase-letters>
+      <minimum-lowercase-letters>1</minimum-lowercase-letters>
+      <minimum-numeric-letters>0</minimum-numeric-letters>
+      <block-username-inclusion>no</block-username-inclusion>
+    </password-complexity>
+  </mgt-config>
+  <shared>
+    <profile-group>
+      <entry name="strict-group">
+        <virus><member>strict-av</member></virus>
+        <spyware><member>strict-as</member></spyware>
+        <vulnerability><member>strict-vp</member></vulnerability>
+        <url-filtering><member>strict-url</member></url-filtering>
+      </entry>
+      <entry name="thin-group">
+        <url-filtering><member>strict-url</member></url-filtering>
+      </entry>
+    </profile-group>
+  </shared>
+  <devices>
+    <entry name="localhost.localdomain">
+      <deviceconfig>
+        <system>
+          <hostname>TESTFW-01</hostname>
+          <ntp-servers>
+            <primary-ntp-server>
+              <ntp-server-address>192.0.2.10</ntp-server-address>
+            </primary-ntp-server>
+          </ntp-servers>
+        </system>
+      </deviceconfig>
+      <vsys>
+        <entry name="vsys1">
+          <zone>
+            <entry name="trust">
+              <network>
+                <layer3><member>ethernet1/1</member></layer3>
+                <zone-protection-profile>zpp-standard</zone-protection-profile>
+              </network>
+            </entry>
+            <entry name="untrust">
+              <network>
+                <layer3><member>ethernet1/2</member></layer3>
+              </network>
+            </entry>
+            <entry name="spare">
+              <network/>
+            </entry>
+          </zone>
+          <rulebase>
+            <security>
+              <rules>
+                <entry name="good-rule" uuid="00000000-0000-0000-0000-000000000001">
+                  <description>Allows web from trust to untrust</description>
+                  <from><member>trust</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>10.0.0.0/24</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>web-browsing</member></application>
+                  <service><member>application-default</member></service>
+                  <action>allow</action>
+                  <log-end>yes</log-end>
+                  <log-setting>lfp-default</log-setting>
+                  <profile-setting><group><member>strict-group</member></group></profile-setting>
+                </entry>
+                <entry name="naked-allow" uuid="00000000-0000-0000-0000-000000000002">
+                  <from><member>trust</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>any</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>any</member></application>
+                  <service><member>any</member></service>
+                  <action>allow</action>
+                  <log-end>no</log-end>
+                </entry>
+                <entry name="thin-group-allow" uuid="00000000-0000-0000-0000-000000000003">
+                  <description>Group attached but group lacks core profiles</description>
+                  <from><member>trust</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>10.0.0.0/24</member></source>
+                  <destination><member>198.51.100.7</member></destination>
+                  <application><member>ssl</member></application>
+                  <service><member>application-default</member></service>
+                  <action>allow</action>
+                  <log-setting>lfp-default</log-setting>
+                  <profile-setting><group><member>thin-group</member></group></profile-setting>
+                </entry>
+                <entry name="individual-profiles" uuid="00000000-0000-0000-0000-000000000004">
+                  <description>Individually attached core profiles</description>
+                  <from><member>trust</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>10.0.0.0/24</member></source>
+                  <destination><member>198.51.100.8</member></destination>
+                  <application><member>dns</member></application>
+                  <service><member>application-default</member></service>
+                  <action>allow</action>
+                  <log-setting>lfp-default</log-setting>
+                  <profile-setting>
+                    <profiles>
+                      <virus><member>strict-av</member></virus>
+                      <spyware><member>strict-as</member></spyware>
+                      <vulnerability><member>strict-vp</member></vulnerability>
+                    </profiles>
+                  </profile-setting>
+                </entry>
+                <entry name="deny-rule" uuid="00000000-0000-0000-0000-000000000005">
+                  <from><member>untrust</member></from>
+                  <to><member>trust</member></to>
+                  <source><member>any</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>any</member></application>
+                  <service><member>any</member></service>
+                  <action>deny</action>
+                  <log-setting>lfp-default</log-setting>
+                </entry>
+                <entry name="disabled-bad-rule" uuid="00000000-0000-0000-0000-000000000006">
+                  <disabled>yes</disabled>
+                  <from><member>trust</member></from>
+                  <to><member>untrust</member></to>
+                  <source><member>any</member></source>
+                  <destination><member>any</member></destination>
+                  <application><member>any</member></application>
+                  <service><member>any</member></service>
+                  <action>allow</action>
+                </entry>
+              </rules>
+            </security>
+          </rulebase>
+        </entry>
+      </vsys>
+    </entry>
+  </devices>
+</config>

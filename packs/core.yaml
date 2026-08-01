@@ -1,0 +1,156 @@
+# Core check pack — Phase 0 seed set.
+#
+# Slugs are the stable identity of a check; never renumber or reuse them.
+# pan_bpa_ids are cross-references to the vendor BPA's (unstable) numeric IDs,
+# recorded for operators migrating from vendor reports. Check text is
+# independently written; references point at Palo Alto Networks' public
+# best-practices documentation.
+pack: core
+version: 0.1.0
+checks:
+  - slug: rule-description
+    title: Security rules should have a description
+    severity: informational
+    section: policies
+    feature: security_rule
+    evaluator: rule_description
+    rationale: >-
+      Descriptions record intent, which makes auditing and maintaining the
+      rulebase possible after staff turnover.
+    remediation: Populate the Description field on each rule.
+    pan_bpa_ids: [3]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/security-policy-best-practices
+
+  - slug: rule-service-specific
+    title: Allow rules should not use service "any"
+    severity: critical
+    section: policies
+    feature: security_rule
+    evaluator: rule_service_specific
+    rationale: >-
+      Restricting service ports limits where traffic can flow before App-ID
+      identifies the application; "any" leaves every port open to evasive
+      applications. Prefer application-default.
+    remediation: Set Service to application-default or an explicit service object.
+    pan_bpa_ids: [5]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy
+
+  - slug: rule-no-any-any-allow
+    title: Allow rules should not match any source and any destination
+    severity: critical
+    section: policies
+    feature: security_rule
+    evaluator: rule_no_any_any_allow
+    rationale: >-
+      An allow rule with unscoped source and destination admits traffic no one
+      intended and defeats segmentation.
+    remediation: Scope the rule's source and/or destination zones and addresses.
+    pan_bpa_ids: [4]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy
+
+  - slug: rule-log-end
+    title: Log at Session End should be enabled on security rules
+    severity: informational
+    section: policies
+    feature: security_rule
+    evaluator: rule_log_end
+    rationale: >-
+      Without session-end logging there is no record of traffic the rule
+      matched, blinding investigation and tuning.
+    remediation: Enable Log at Session End on the rule.
+    pan_bpa_ids: [6]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/security-policy-best-practices
+
+  - slug: rule-log-forwarding
+    title: A Log Forwarding profile should be attached to security rules
+    severity: informational
+    section: policies
+    feature: security_rule
+    evaluator: rule_log_forwarding
+    rationale: >-
+      On-box log storage is small and rotates; forwarding preserves logs for
+      retention and correlation.
+    remediation: Attach a Log Forwarding profile (name it "default" to auto-attach on new rules).
+    pan_bpa_ids: [7]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/security-policy-best-practices
+
+  - slug: rule-profiles-attached
+    title: Security profiles should be attached to allow rules
+    severity: critical
+    section: policies
+    feature: security_rule
+    evaluator: rule_profiles_attached
+    rationale: >-
+      An allow rule without Antivirus, Anti-Spyware, and Vulnerability
+      Protection passes traffic with zero threat inspection. A profile-group
+      attachment only counts if the group actually contains those profiles.
+    remediation: >-
+      Attach a security profile group containing at least Antivirus,
+      Anti-Spyware, and Vulnerability Protection to every allow rule.
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: profile-group-default-exists
+    title: A security profile group named "default" should exist
+    severity: warning
+    section: objects
+    feature: profile_group
+    evaluator: profile_group_default
+    rationale: >-
+      PAN-OS automatically attaches a profile group named exactly "default" to
+      new security rules; without one, new rules ship with no inspection.
+    remediation: Create a hardened profile group named "default".
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: zone-protection-attached
+    title: Zones with interfaces should have a Zone Protection profile
+    severity: warning
+    section: network
+    feature: zone
+    evaluator: zone_protection_profile
+    rationale: >-
+      Zone Protection provides flood, reconnaissance, and packet-based attack
+      defense at the zone edge; a zone without it is unshielded.
+    remediation: Attach a Zone Protection profile to every in-service zone.
+    pan_bpa_ids: [60]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/dos-and-zone-protection-best-practices
+
+  - slug: ntp-redundant
+    title: Primary and secondary NTP servers should be configured
+    severity: informational
+    section: device
+    feature: device_setup_services
+    evaluator: ntp_redundant
+    rationale: >-
+      Accurate, redundant time sources underpin log correlation, certificate
+      validation, and scheduled content updates.
+    remediation: Configure both a primary and a secondary NTP server.
+    pan_bpa_ids: [105]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices
+
+  - slug: password-complexity
+    title: Minimum password complexity should be enforced for local accounts
+    severity: warning
+    section: device
+    feature: device_setup_minimum_password_complexity
+    evaluator: password_complexity
+    params:
+      min_length: 12
+    rationale: >-
+      Local administrator accounts (even backup-only ones) need enforced
+      complexity; enabling the feature with zeroed character-class minimums is
+      not enforcement.
+    remediation: >-
+      Enable Minimum Password Complexity and set minimum length and at least
+      one required character of each class, plus username-inclusion blocking.
+    pan_bpa_ids: [103]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices
