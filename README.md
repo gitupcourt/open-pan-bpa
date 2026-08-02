@@ -12,7 +12,7 @@ Offline, air-gapped Best Practice Assessment for Palo Alto Networks NGFW configu
 
 ## Why
 
-Every incarnation of the vendor BPA (Customer Support Portal → AIOps for NGFW →
+Every incarnation of the vendor BPA (the original support-portal tool → AIOps for NGFW →
 Strata Cloud Manager posture) is SaaS: your full firewall configuration is uploaded
 to a cloud you don't control. For air-gapped and regulated networks that's a
 non-starter. `open-pan-bpa` evaluates best-practice checks **entirely offline**:
@@ -48,7 +48,8 @@ go test ./...
 ```
 
 Conformance ("golden") tests run against real-device fixtures that are **never
-committed** (customer configurations). Point `OPENPANBPA_FIXTURES` at a local
+committed** — real firewall configurations are treated as sensitive regardless
+of where they came from. Point `OPENPANBPA_FIXTURES` at a local
 fixtures directory to enable them; they skip cleanly when unset. See
 [SECURITY.md](SECURITY.md) for the data-handling policy.
 

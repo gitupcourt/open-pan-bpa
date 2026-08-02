@@ -1,5 +1,6 @@
 // Conformance ("golden") tests against real-device fixtures. Fixtures are
-// customer configurations and are NEVER committed (see SECURITY.md); point
+// real firewall configurations — sensitive regardless of origin — and are
+// NEVER committed (see SECURITY.md); point
 // OPENPANBPA_FIXTURES at a local directory containing tech support files
 // (*.tgz / *.gz) to enable these tests. They skip cleanly when unset.
 package openpanbpa_test

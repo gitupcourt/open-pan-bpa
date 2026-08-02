@@ -2,7 +2,7 @@
 CLAUDE.md
 .claude/
 
-# Customer data / fixtures — never committed (see SECURITY.md)
+# Real-device configs / fixtures — never committed (see SECURITY.md)
 fixtures/
 *.tgz
 *.tar.gz
