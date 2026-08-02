@@ -1,0 +1,304 @@
+# Device-setup check pack: management posture, session/Content-ID hardening,
+# authentication thresholds. Numeric thresholds are tunable params.
+pack: device-setup
+version: 0.1.0
+checks:
+  - slug: dev-cert-expiration-check
+    title: Certificate expiration checking should be enabled
+    severity: informational
+    section: device
+    feature: device_setup_general
+    evaluator: dev_cert_expiration_check
+    rationale: Expired device certificates should warn ahead of time, not fail silently mid-outage.
+    remediation: Enable certificate expiration checking (Device > Setup > Management).
+    pan_bpa_ids: [89]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-unique-hostname
+    title: The device should have a unique hostname
+    severity: informational
+    section: device
+    feature: device_setup_general
+    evaluator: dev_unique_hostname
+    rationale: Default hostnames make logs, alerts, and HA pairs unattributable.
+    remediation: Set a unique hostname.
+    pan_bpa_ids: [90]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-login-banner
+    title: A login banner should be configured
+    severity: informational
+    section: device
+    feature: device_setup_general
+    evaluator: dev_login_banner
+    rationale: Unauthorized-access warnings at login carry legal weight.
+    remediation: Configure a login banner.
+    pan_bpa_ids: [91]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-wildfire-regional-cloud
+    title: WildFire should forward samples to a regional cloud
+    severity: informational
+    section: device
+    feature: device_setup_general
+    evaluator: dev_wildfire_cloud
+    rationale: Regional clouds keep samples in-jurisdiction and shorten verdict round-trips.
+    remediation: Point WildFire at the regional cloud matching the device's geography.
+    pan_bpa_ids: [119]
+    references: [https://docs.paloaltonetworks.com/advanced-wildfire]
+
+  - slug: dev-external-auth-profile
+    title: Administrator authentication should use an external Authentication profile
+    severity: warning
+    section: device
+    feature: device_setup_authentication
+    evaluator: dev_auth_profile
+    rationale: >-
+      Central authentication gives lockout, MFA, and audit in one place;
+      local-only accounts scatter all three.
+    remediation: Set an Authentication profile under Authentication Settings.
+    pan_bpa_ids: [92]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-idle-timeout
+    title: Admin idle timeout should be set and modest
+    severity: warning
+    section: device
+    feature: device_setup_authentication
+    evaluator: dev_idle_timeout
+    params: { max_minutes: 10 }
+    rationale: An unattended management session is an open console.
+    remediation: Set the idle timeout to 10 minutes or less.
+    pan_bpa_ids: [94]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-failed-attempts
+    title: Failed login attempts should be limited to five or fewer
+    severity: warning
+    section: device
+    feature: device_setup_authentication
+    evaluator: dev_failed_attempts
+    rationale: Unlimited attempts invite brute force; five tolerates typos.
+    remediation: Set Failed Attempts between 1 and 5.
+    pan_bpa_ids: [95]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-lockout-time
+    title: Admin lockout time should be at least 30 minutes
+    severity: warning
+    section: device
+    feature: device_setup_authentication
+    evaluator: dev_lockout_time
+    rationale: Short lockouts just pace a brute-force tool.
+    remediation: Set Lockout Time to 30 minutes or more.
+    pan_bpa_ids: [96]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-api-key-lifetime
+    title: API keys should expire
+    severity: warning
+    section: device
+    feature: device_setup_authentication
+    evaluator: dev_api_key_lifetime
+    rationale: A leaked never-expiring key is permanent access.
+    remediation: Set an API Key Lifetime.
+    pan_bpa_ids: [243]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-permitted-ip
+    title: Management access should be restricted by Permitted IP Addresses
+    severity: warning
+    section: device
+    feature: device_setup_management_interface
+    evaluator: dev_permitted_ip
+    rationale: An unrestricted management plane is reachable by anything that can route to it.
+    remediation: Populate the Permitted IP Addresses list with management networks.
+    pan_bpa_ids: [100]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-permitted-ip-scoped
+    title: The Permitted IP list should not contain any-source entries
+    severity: warning
+    section: device
+    feature: device_setup_management_interface
+    evaluator: dev_permitted_ip_broad
+    rationale: A 0.0.0.0/0 entry recreates unrestricted access while looking configured.
+    remediation: Replace any-source entries with specific management networks.
+    pan_bpa_ids: [101]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-mgmt-encrypted-only
+    title: Management services should be encrypted only (no HTTP/Telnet)
+    severity: critical
+    section: device
+    feature: device_setup_management_interface
+    evaluator: dev_mgmt_encrypted_only
+    rationale: Cleartext management exposes credentials to anything on the path.
+    remediation: Keep HTTP and Telnet disabled; use HTTPS and SSH.
+    pan_bpa_ids: [102]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: dev-update-server-verify
+    title: Update server identity verification should be enabled
+    severity: warning
+    section: device
+    feature: device_setup_services
+    evaluator: dev_update_server_verify
+    rationale: Unverified update servers invite content-update spoofing.
+    remediation: Enable Verify Update Server Identity.
+    pan_bpa_ids: [104]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-fqdn-refresh
+    title: FQDN refresh time should be 30 seconds or less
+    severity: informational
+    section: device
+    feature: device_setup_services
+    evaluator: dev_fqdn_refresh
+    rationale: Slow FQDN refresh leaves policy pointing at stale addresses.
+    remediation: Set Minimum FQDN Refresh Time to 30 seconds or less.
+    pan_bpa_ids: [245]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-session-rematch
+    title: Session rematch on policy commit should be enabled
+    severity: warning
+    section: device
+    feature: device_setup_session
+    evaluator: dev_rematch
+    rationale: Without rematch, sessions started before a policy tightening keep their old permissions.
+    remediation: Enable Rematch Sessions.
+    pan_bpa_ids: [120]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-accelerated-aging
+    title: Accelerated session aging should be enabled
+    severity: informational
+    section: device
+    feature: device_setup_session
+    evaluator: dev_accel_aging
+    rationale: Aging idle sessions faster under pressure protects the session table.
+    remediation: Enable Accelerated Aging.
+    pan_bpa_ids: [121]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-packet-buffer-protection
+    title: Global Packet Buffer Protection should be enabled
+    severity: warning
+    section: device
+    feature: device_setup_session
+    evaluator: dev_packet_buffer
+    rationale: Packet-buffer exhaustion degrades every zone at once; the global guard is the backstop.
+    remediation: Enable Packet Buffer Protection in Session Settings.
+    pan_bpa_ids: [213]
+    references: [https://docs.paloaltonetworks.com/best-practices/dos-and-zone-protection-best-practices]
+
+  - slug: dev-tcp-ooo-forwarding
+    title: Forwarding segments exceeding the TCP out-of-order queue should be disabled
+    severity: critical
+    section: device
+    feature: device_setup_session
+    evaluator: dev_tcp_ooo_queue
+    rationale: Forwarded overflow segments bypass inspection — a classic evasion channel.
+    remediation: Do not forward segments exceeding the out-of-order queue.
+    pan_bpa_ids: [214]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+
+  - slug: dev-tcp-inspection-queue
+    title: Forwarding segments exceeding the TCP content-inspection queue should be disabled
+    severity: critical
+    section: device
+    feature: device_setup_content_id
+    evaluator: dev_tcp_ctd_queue
+    rationale: Same evasion channel, content-inspection stage.
+    remediation: Do not forward segments exceeding the TCP content-inspection queue.
+    pan_bpa_ids: [215]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+
+  - slug: dev-udp-inspection-queue
+    title: Forwarding datagrams exceeding the UDP content-inspection queue should be disabled
+    severity: critical
+    section: device
+    feature: device_setup_content_id
+    evaluator: dev_udp_ctd_queue
+    rationale: Same evasion channel, UDP.
+    remediation: Do not forward datagrams exceeding the UDP content-inspection queue.
+    pan_bpa_ids: [216]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+
+  - slug: dev-appid-inspection-queue
+    title: Forwarding segments exceeding the App-ID inspection queue should be disabled
+    severity: critical
+    section: device
+    feature: device_setup_content_id
+    evaluator: dev_appid_queue
+    rationale: Overflow segments skipping App-ID arrive unidentified and unpoliced.
+    remediation: Do not forward segments exceeding the App-ID inspection queue.
+    pan_bpa_ids: [217]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+
+  - slug: dev-xff-user-id
+    title: X-Forwarded-For should feed User-ID
+    severity: informational
+    section: device
+    feature: device_setup_content_id
+    evaluator: dev_xff_user_id
+    rationale: Without XFF extraction, users behind downstream proxies are one shared IP.
+    remediation: Enable Use X-Forwarded-For in Content-ID settings.
+    pan_bpa_ids: [107]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-strip-xff
+    title: X-Forwarded-For headers should be stripped outbound
+    severity: warning
+    section: device
+    feature: device_setup_content_id
+    evaluator: dev_strip_xff
+    rationale: Forwarded XFF leaks internal client addressing to external servers.
+    remediation: Enable Strip X-Forwarded-For in Content-ID settings.
+    pan_bpa_ids: [108]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-rule-hit-count
+    title: Policy rule hit counting should be enabled
+    severity: informational
+    section: device
+    feature: device_setup_policy_rulebase
+    evaluator: dev_hit_count
+    rationale: Unused-rule cleanup needs hit-count evidence.
+    remediation: Keep Policy Rule Hit Count enabled.
+    pan_bpa_ids: [242]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-log-high-dp-load
+    title: High dataplane load should generate a system log
+    severity: informational
+    section: device
+    feature: device_setup_logging_reporting
+    evaluator: dev_log_high_dp
+    rationale: A 100%-load event with no log is a capacity incident you find out about from users.
+    remediation: Enable high dataplane load logging.
+    pan_bpa_ids: [97]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-telemetry-sharing
+    title: Device telemetry sharing should not be fully disabled
+    severity: informational
+    section: device
+    feature: device_setup_telemetry
+    evaluator: dev_telemetry
+    rationale: Telemetry feeds the threat-intelligence loop the subscriptions rely on.
+    remediation: Enable at least threat-prevention telemetry.
+    pan_bpa_ids: [197]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dev-secure-conn-custom-certs
+    title: Secure client communication should use custom certificates
+    severity: informational
+    section: device
+    feature: device_setup_secure_communication
+    evaluator: dev_secure_conn
+    rationale: Predefined management-channel certificates are shared knowledge; custom ones aren't.
+    remediation: Deploy custom certificates for secure client communication.
+    pan_bpa_ids: [223]
+    references: [https://docs.paloaltonetworks.com/best-practices]

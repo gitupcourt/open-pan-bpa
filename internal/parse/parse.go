@@ -156,14 +156,53 @@ func parseProfileGroup(e *xmlnode.Node, location string) model.ProfileGroup {
 
 func parseDevice(dev *xmlnode.Node, d *model.Device) {
 	sys := dev.First("deviceconfig", "system")
-	if sys == nil {
-		return
+	if sys != nil {
+		d.NTPPrimary = sys.ChildText("ntp-servers", "primary-ntp-server", "ntp-server-address")
+		d.NTPSecondary = sys.ChildText("ntp-servers", "secondary-ntp-server", "ntp-server-address")
+		d.SysFlags = leafMap(sys)
+		for _, e := range sys.Entries("permitted-ip") {
+			d.PermittedIPs = append(d.PermittedIPs, e.Attr("name"))
+		}
+		d.TelemetryFlags = leafMap(sys.First("device-telemetry"))
+		if scc := sys.First("secure-conn-client"); scc != nil {
+			d.SecureConnCert = scc.First("certificate") != nil || scc.First("certificate-type") != nil
+		}
 	}
-	d.NTPPrimary = sys.ChildText("ntp-servers", "primary-ntp-server", "ntp-server-address")
-	d.NTPSecondary = sys.ChildText("ntp-servers", "secondary-ntp-server", "ntp-server-address")
+	if setting := dev.First("deviceconfig", "setting"); setting != nil {
+		d.MgmtFlags = leafMap(setting.First("management"))
+		d.AdminLockout = leafMap(setting.First("management", "admin-lockout"))
+		d.APIKeyLifetime = setting.ChildText("management", "api", "key", "lifetime")
+		d.CTDFlags = leafMap(setting.First("ctd"))
+		d.SessionFlags = leafMap(setting.First("session"))
+		d.ConfigFlags = leafMap(setting.First("config"))
+		d.TCPFlags = leafMap(setting.First("tcp"))
+		d.AppFlags = leafMap(setting.First("application"))
+		d.WildfireSet = leafMap(setting.First("wildfire"))
+	}
+}
+
+// leafMap projects an element's children onto name -> trimmed text, keeping
+// only leaves (children without element children).
+func leafMap(n *xmlnode.Node) map[string]string {
+	if n == nil {
+		return nil
+	}
+	m := map[string]string{}
+	for _, c := range n.Children {
+		if len(c.Children) == 0 {
+			m[c.Name] = c.TrimText()
+		}
+	}
+	return m
 }
 
 func parseMgtConfig(mgt *xmlnode.Node, d *model.Device) {
+	for _, u := range mgt.Entries("users") {
+		d.AdminCount++
+		if u.ChildText("authentication-profile") != "" {
+			d.AdminsWithAuthProfile++
+		}
+	}
 	pc := mgt.First("password-complexity")
 	if pc == nil {
 		return
