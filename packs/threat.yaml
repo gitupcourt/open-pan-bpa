@@ -1,0 +1,168 @@
+# Threat-profile check pack: Anti-Spyware and Vulnerability Protection.
+pack: threat
+version: 0.1.0
+checks:
+  - slug: as-severity-rules
+    title: Anti-Spyware should block critical/high/medium threats with packet capture
+    severity: warning
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_severity_rules
+    rationale: >-
+      Spyware at these severities is active compromise traffic; the rule needs
+      a blocking action, and packet capture preserves the evidence you'll want
+      during the incident.
+    remediation: >-
+      Cover critical, high, and medium severities with rules whose action is
+      reset-both (or drop/reset-client/reset-server/block-ip) and whose packet
+      capture is single-packet or extended.
+    pan_bpa_ids: [40]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: as-low-info-default
+    title: Anti-Spyware low/informational severities should use the default action
+    severity: informational
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_low_info_default
+    rationale: >-
+      Low-severity signatures are tuned for visibility; overriding them harder
+      creates noise, and not covering them at all loses visibility.
+    remediation: Cover low and informational severities with default-action rules.
+    pan_bpa_ids: [201]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: as-threat-exceptions
+    title: Anti-Spyware profiles should not carry threat exceptions
+    severity: informational
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_threat_exceptions
+    rationale: An excepted signature is permanently unenforced.
+    remediation: Resolve false positives via support, then remove the exception.
+    pan_bpa_ids: [36]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: as-dns-sinkhole
+    title: DNS Security categories should sinkhole with packet capture
+    severity: warning
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_dns_sinkhole
+    rationale: >-
+      Sinkholing redirects malicious resolutions to a known address so the
+      querying (compromised) host is identifiable in traffic logs; capture
+      levels follow the reference per-category matrix.
+    remediation: >-
+      Set every DNS Security category action to sinkhole; extended capture for
+      command-and-control, single-packet for the rest.
+    pan_bpa_ids: [38]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/configure-threat-prevention/use-dns-queries-to-identify-infected-hosts-on-the-network/configure-dns-sinkholing
+
+  - slug: as-dns-cloud-c2
+    title: DNS Security command-and-control category must sinkhole with capture
+    severity: warning
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_dns_cloud
+    rationale: >-
+      C2 domain lookups are the highest-signal DNS event; letting them resolve
+      with the content default forfeits both blocking and attribution.
+    remediation: Sinkhole pan-dns-sec-cc with extended capture and logging.
+    pan_bpa_ids: [253]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-threat-prevention
+
+  - slug: as-inline-cloud-engines
+    title: Anti-Spyware Inline Cloud Analysis engines should block
+    severity: warning
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_inline_engines
+    rationale: >-
+      Inline cloud analysis without blocking actions detects C2 in the data
+      path but lets it through.
+    remediation: Enable Inline Cloud Analysis and set every engine to drop or reset.
+    pan_bpa_ids: [334]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-threat-prevention
+
+  - slug: as-inline-cloud-enabled
+    title: Anti-Spyware Inline Cloud Analysis should be enabled
+    severity: warning
+    section: objects
+    feature: anti_spyware_profile
+    evaluator: as_inline_enabled
+    rationale: In-line ML verdicts catch C2 variants ahead of signatures.
+    remediation: Enable Inline Cloud Analysis on the profile.
+    pan_bpa_ids: [364]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-threat-prevention
+
+  - slug: vp-severity-rules
+    title: Vulnerability Protection should block critical/high/medium with packet capture
+    severity: warning
+    section: objects
+    feature: vulnerability_protection_profile
+    evaluator: vp_severity_rules
+    rationale: >-
+      Exploit attempts at these severities warrant blocking and captured
+      evidence; a detect-only or capture-less rule leaves gaps in both.
+    remediation: >-
+      Cover critical, high, and medium severities with blocking-action rules
+      and packet capture enabled.
+    pan_bpa_ids: [42]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: vp-low-info-default
+    title: Vulnerability Protection low/informational severities should use the default action
+    severity: informational
+    section: objects
+    feature: vulnerability_protection_profile
+    evaluator: vp_low_info_default
+    rationale: Same visibility-without-noise posture as the spyware profile.
+    remediation: Cover low and informational severities with default-action rules.
+    pan_bpa_ids: [200]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: vp-threat-exceptions
+    title: Vulnerability Protection profiles should not carry threat exceptions
+    severity: informational
+    section: objects
+    feature: vulnerability_protection_profile
+    evaluator: vp_threat_exceptions
+    rationale: An excepted signature is permanently unenforced.
+    remediation: Resolve false positives via support, then remove the exception.
+    pan_bpa_ids: [41]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: vp-inline-cloud-engines
+    title: Vulnerability Inline Cloud Analysis engines should block
+    severity: warning
+    section: objects
+    feature: vulnerability_protection_profile
+    evaluator: vp_inline_engines
+    rationale: Detection-only inline analysis lets identified exploits through.
+    remediation: Enable Inline Cloud Analysis and set every engine to drop or reset.
+    pan_bpa_ids: [360]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-threat-prevention
+
+  - slug: vp-inline-cloud-enabled
+    title: Vulnerability Inline Cloud Analysis should be enabled
+    severity: warning
+    section: objects
+    feature: vulnerability_protection_profile
+    evaluator: vp_inline_enabled
+    rationale: In-line ML verdicts catch exploit variants ahead of signatures.
+    remediation: Enable Inline Cloud Analysis on the profile.
+    pan_bpa_ids: [365]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-threat-prevention

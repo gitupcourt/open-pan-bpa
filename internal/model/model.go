@@ -20,6 +20,8 @@ type Config struct {
 	FileBlockingProfiles  []FileBlockingProfile
 	WildfireProfiles      []WildfireProfile
 	LogForwardingProfiles []LogForwardingProfile
+	SpywareProfiles       []SpywareProfile
+	VulnerabilityProfiles []VulnerabilityProfile
 
 	// LicenseInfoAvailable is true when the input carried license state
 	// (tech support files do; bare config XML exports cannot).
@@ -118,6 +120,52 @@ type LogForwardingProfile struct {
 	Name     string
 	Location string
 	Matches  []LogForwardingMatch
+}
+
+// ThreatRule is one severity rule in an Anti-Spyware or Vulnerability
+// Protection profile. Action is the rule's action verb (the XML encodes it as
+// a child element name, e.g. <action><reset-both/></action>).
+type ThreatRule struct {
+	Name          string
+	Severities    []string
+	Action        string
+	PacketCapture string // disable | single-packet | extended-capture
+	Host          string // vulnerability rules only: client | server | any
+}
+
+// BlockingThreatActions are rule actions that actually stop the session.
+var BlockingThreatActions = map[string]bool{
+	"reset-both": true, "drop": true, "reset-client": true, "reset-server": true, "block-ip": true,
+}
+
+// DNSCategory is one DNS Security category row in an Anti-Spyware profile's
+// botnet-domains configuration.
+type DNSCategory struct {
+	Name          string
+	Action        string
+	LogLevel      string
+	PacketCapture string
+}
+
+// SpywareProfile is a normalized Anti-Spyware profile.
+type SpywareProfile struct {
+	Name                string
+	Location            string
+	Rules               []ThreatRule
+	ThreatExceptions    []string
+	CloudInlineAnalysis bool
+	MicaEngines         map[string]string // engine name -> inline-policy-action
+	DNSCategories       []DNSCategory
+}
+
+// VulnerabilityProfile is a normalized Vulnerability Protection profile.
+type VulnerabilityProfile struct {
+	Name                string
+	Location            string
+	Rules               []ThreatRule
+	ThreatExceptions    []string
+	CloudInlineAnalysis bool
+	MicaEngines         map[string]string
 }
 
 // License is one entry from the device's license inventory.
