@@ -51,15 +51,24 @@ var tsfConfigCandidates = []string{
 	"running-config.xml",
 }
 
+// maxTranscriptBytes caps the CLI transcript read from a TSF.
+const maxTranscriptBytes = 64 << 20 // 64 MiB
+
 // Source describes where the loaded config came from.
 type Source struct {
-	Path      string // input file as given
-	Kind      string // "xml" or "tsf"
-	entryName string // archive entry used, if Kind == "tsf"
+	Path       string // input file as given
+	Kind       string // "xml" or "tsf"
+	entryName  string // archive entry used, if Kind == "tsf"
+	transcript string // CLI transcript contents, if present in the TSF
 }
 
 // EntryName reports which archive entry supplied the config ("" for bare XML).
 func (s Source) EntryName() string { return s.entryName }
+
+// Transcript returns the TSF's CLI command transcript ("" for bare XML or
+// when the TSF carries none). It holds diagnostic command output — license
+// state, versions — that the config XML does not.
+func (s Source) Transcript() string { return s.transcript }
 
 // Load reads the input file and returns the parsed XML root of the
 // configuration document.
@@ -97,6 +106,7 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 	best := len(tsfConfigCandidates)
 	var bestData []byte
 	var bestName string
+	var transcript []byte
 
 	tr := tar.NewReader(&cappedReader{r: gz, limit: maxArchiveBytes})
 	for {
@@ -111,6 +121,18 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 			continue
 		}
 		base := path.Base(hdr.Name)
+
+		// CLI transcript: tmp/cli/techsupport_<host>_<ts>.txt — feeds checks
+		// that need device state absent from the config (licenses, versions).
+		if transcript == nil && strings.Contains(hdr.Name, "/cli/") &&
+			strings.HasPrefix(base, "techsupport") && strings.HasSuffix(base, ".txt") {
+			data, err := io.ReadAll(io.LimitReader(tr, maxTranscriptBytes))
+			if err == nil {
+				transcript = data
+			}
+			continue
+		}
+
 		rank := candidateRank(base)
 		if rank < 0 || rank >= best {
 			continue
@@ -128,8 +150,8 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 			return nil, Source{}, fmt.Errorf("%s: %s exceeds %d byte limit", inputPath, hdr.Name, maxConfigBytes)
 		}
 		best, bestData, bestName = rank, data, hdr.Name
-		if best == 0 {
-			break // already found the top-preference file
+		if best == 0 && transcript != nil {
+			break // found both the top-preference config and the transcript
 		}
 	}
 
@@ -140,7 +162,7 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 	if err != nil {
 		return nil, Source{}, fmt.Errorf("%s: parsing %s: %w", inputPath, bestName, err)
 	}
-	return root, Source{Path: inputPath, Kind: "tsf", entryName: bestName}, nil
+	return root, Source{Path: inputPath, Kind: "tsf", entryName: bestName, transcript: string(transcript)}, nil
 }
 
 func candidateRank(base string) int {

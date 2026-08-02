@@ -135,6 +135,25 @@ checks:
     references:
       - https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices
 
+  - slug: license-expiry
+    title: Licenses should not be expired or near expiry
+    severity: high
+    section: device
+    feature: licenses
+    evaluator: license_expiry
+    params:
+      warn_days: 90
+    rationale: >-
+      An expired subscription silently stops its protections and content
+      updates — the firewall keeps passing traffic while inspection quality
+      decays. Expiry inside the warning window needs renewal action now.
+    remediation: >-
+      Renew expired and soon-to-expire licenses, or deliberately retire the
+      dependency on the lapsed feature. Requires a tech support file as input
+      (license state is not part of the configuration XML).
+    references:
+      - https://docs.paloaltonetworks.com/pan-os/11-1/pan-os-admin/subscriptions/activate-subscription-licenses
+
   - slug: password-complexity
     title: Minimum password complexity should be enforced for local accounts
     severity: warning

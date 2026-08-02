@@ -45,8 +45,7 @@ var htmlTemplate string
 
 type htmlData struct {
 	Rep      *engine.Report
-	Failures []engine.Finding
-	Notes    []engine.Finding
+	Findings []engine.Finding // fail, then note, then pass; n/a omitted
 	BySlug   []slugSummary
 }
 
@@ -78,15 +77,26 @@ func WriteHTML(w io.Writer, rep *engine.Report) error {
 			s.Pass++
 		case engine.Fail:
 			s.Fail++
-			d.Failures = append(d.Failures, f)
 		case engine.Note:
 			s.Notes++
-			d.Notes = append(d.Notes, f)
+		}
+		if f.Verdict != engine.NotApplicable {
+			d.Findings = append(d.Findings, f)
 		}
 	}
 	sort.Strings(order)
 	for _, slug := range order {
 		d.BySlug = append(d.BySlug, *bySlug[slug])
 	}
+	// Fail first (critical → informational), then notes, then passes.
+	verdictRank := map[engine.Verdict]int{engine.Fail: 0, engine.Note: 1, engine.Pass: 2}
+	sevRank := map[engine.Severity]int{engine.Critical: 0, engine.High: 1, engine.Warning: 2, engine.Informational: 3}
+	sort.SliceStable(d.Findings, func(i, j int) bool {
+		a, b := d.Findings[i], d.Findings[j]
+		if verdictRank[a.Verdict] != verdictRank[b.Verdict] {
+			return verdictRank[a.Verdict] < verdictRank[b.Verdict]
+		}
+		return sevRank[a.Severity] < sevRank[b.Severity]
+	})
 	return t.Execute(w, d)
 }

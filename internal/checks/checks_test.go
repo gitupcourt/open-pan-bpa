@@ -3,6 +3,7 @@ package checks
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/gitupcourt/open-pan-bpa/internal/engine"
 	"github.com/gitupcourt/open-pan-bpa/internal/model"
@@ -110,6 +111,41 @@ func TestDeviceChecks(t *testing.T) {
 	pg := findingFor(rep, "profile-group-default-exists", "default")
 	if pg == nil || pg.Verdict != engine.Fail {
 		t.Errorf("profile-group-default-exists: %+v", pg)
+	}
+}
+
+func TestLicenseExpiry(t *testing.T) {
+	now := time.Now()
+	cfg := &model.Config{
+		LicenseInfoAvailable: true,
+		Licenses: []model.License{
+			{Feature: "Expired-Sub", Expired: true, Expires: now.AddDate(-1, 0, 0)},
+			{Feature: "Expiring-Soon", Expires: now.AddDate(0, 0, 30)},
+			{Feature: "Healthy", Expires: now.AddDate(2, 0, 0)},
+			{Feature: "Perpetual", Never: true},
+		},
+	}
+	meta := engine.CheckMeta{Params: map[string]any{"warn_days": 90}}
+	got := map[string]engine.Verdict{}
+	for _, f := range Registry()["license_expiry"](cfg, meta) {
+		got[f.Object.Name] = f.Verdict
+	}
+	want := map[string]engine.Verdict{
+		"Expired-Sub":   engine.Fail,
+		"Expiring-Soon": engine.Fail,
+		"Healthy":       engine.Pass,
+		"Perpetual":     engine.Pass,
+	}
+	for name, w := range want {
+		if got[name] != w {
+			t.Errorf("%s: verdict = %s, want %s", name, got[name], w)
+		}
+	}
+
+	bare := &model.Config{}
+	fs := Registry()["license_expiry"](bare, meta)
+	if len(fs) != 1 || fs[0].Verdict != engine.Note {
+		t.Errorf("bare config should yield one note, got %+v", fs)
 	}
 }
 

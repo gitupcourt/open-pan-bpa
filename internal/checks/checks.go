@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gitupcourt/open-pan-bpa/internal/engine"
 	"github.com/gitupcourt/open-pan-bpa/internal/model"
@@ -29,6 +30,7 @@ func Registry() engine.Registry {
 		"zone_protection_profile": zoneProtectionProfile,
 		"ntp_redundant":           ntpRedundant,
 		"password_complexity":     passwordComplexity,
+		"license_expiry":          licenseExpiry,
 	}
 }
 
@@ -291,6 +293,47 @@ func passwordComplexity(cfg *model.Config, meta engine.CheckMeta) []engine.Findi
 		f.FailedFields = zeroed
 	}
 	return []engine.Finding{f}
+}
+
+func licenseExpiry(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
+	if !cfg.LicenseInfoAvailable {
+		return []engine.Finding{{
+			Object:  engine.ObjectRef{Section: "device", Feature: "licenses"},
+			Verdict: engine.Note,
+			Message: "License state is not present in a bare config export; scan a tech support file to assess license expiry.",
+		}}
+	}
+	warnDays := paramInt(meta, "warn_days", 90)
+	now := time.Now()
+	out := make([]engine.Finding, 0, len(cfg.Licenses))
+	for _, lic := range cfg.Licenses {
+		f := engine.Finding{
+			Object:  engine.ObjectRef{Section: "device", Feature: "licenses", Name: lic.Feature},
+			Verdict: engine.Pass,
+		}
+		switch {
+		case lic.Expired:
+			f.Verdict = engine.Fail
+			f.Message = fmt.Sprintf("License %q expired %s; its protections and updates have stopped. Renew or retire the dependency on it.",
+				lic.Feature, lic.Expires.Format("2006-01-02"))
+			f.FailedFields = map[string]any{"expired": true, "expires": lic.Expires.Format("2006-01-02")}
+		case !lic.Never && lic.Expires.Before(now.AddDate(0, 0, warnDays)):
+			days := int(lic.Expires.Sub(now).Hours() / 24)
+			f.Verdict = engine.Fail
+			f.Message = fmt.Sprintf("License %q expires %s (%d days). Renew before protections lapse.",
+				lic.Feature, lic.Expires.Format("2006-01-02"), days)
+			f.FailedFields = map[string]any{"expires": lic.Expires.Format("2006-01-02"), "days_remaining": days}
+		}
+		out = append(out, f)
+	}
+	if len(out) == 0 {
+		return []engine.Finding{{
+			Object:  engine.ObjectRef{Section: "device", Feature: "licenses"},
+			Verdict: engine.Note,
+			Message: "No license entries found in the tech support file's license inventory.",
+		}}
+	}
+	return out
 }
 
 // --- helpers -----------------------------------------------------------------

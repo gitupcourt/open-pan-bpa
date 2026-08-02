@@ -46,6 +46,11 @@ config, which includes Panorama-pushed policy.
 **A configuration XML export** — Device → Setup → Operations → Export named
 configuration snapshot (`running-config.xml`).
 
+Prefer the tech support file: some checks (e.g. license expiry) rely on device
+state that only the TSF carries. With a bare XML export those checks don't
+fail or silently vanish — they report an advisory note explaining that a TSF
+is needed to assess them.
+
 Treat both artifacts as sensitive: they contain your addressing, topology, and
 policy logic. Don't commit them to version control or leave them in downloads
 folders — that hygiene is yours to enforce; `bpa` never copies or transmits

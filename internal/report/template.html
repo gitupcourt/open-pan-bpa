@@ -6,8 +6,8 @@
 <title>open-pan-bpa — {{.Rep.Hostname}}</title>
 <style>
 :root{--bg:#f5f7fa;--card:#fff;--ink:#1c2733;--mut:#68778a;--line:#e3e8ee;
-  --crit:#c0392b;--high:#d35400;--warn:#b7950b;--info:#2471a3;--pass:#1e8449;--note:#7d3c98}
-@media (prefers-color-scheme: dark){:root{--bg:#12181f;--card:#1b232d;--ink:#e6edf3;--mut:#8b98a7;--line:#2c3743}}
+  --crit:#c0392b;--high:#d35400;--warn:#b7950b;--info:#2471a3;--pass:#1e8449;--note:#7d3c98;--chipbg:#eef2f6}
+@media (prefers-color-scheme: dark){:root{--bg:#12181f;--card:#1b232d;--ink:#e6edf3;--mut:#8b98a7;--line:#2c3743;--chipbg:#232e3a}}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);padding:24px}
 h1{font-size:20px}h2{font-size:15px;margin:24px 0 8px}
@@ -24,6 +24,14 @@ td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .v-pass{color:var(--pass)}.v-fail{color:var(--crit)}.v-note{color:var(--note)}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
 .foot{margin-top:28px;color:var(--mut);font-size:12px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.controls input[type=search]{flex:1;min-width:220px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px}
+.chip{border:1px solid var(--line);background:var(--chipbg);color:var(--mut);border-radius:16px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;user-select:none}
+.chip.on{background:var(--card);color:var(--ink);border-color:currentColor}
+.chip.on.c-fail{color:var(--crit)}.chip.on.c-note{color:var(--note)}.chip.on.c-pass{color:var(--pass)}
+.chip.on.c-critical{color:var(--crit)}.chip.on.c-high{color:var(--high)}.chip.on.c-warning{color:var(--warn)}.chip.on.c-informational{color:var(--info)}
+.count{color:var(--mut);font-size:12px;margin-left:auto;white-space:nowrap}
+tr.hidden{display:none}
 </style>
 </head>
 <body>
@@ -49,10 +57,22 @@ td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 </tr>{{end}}
 </table></div>
 
-<h2>Failed findings ({{len .Failures}})</h2>
-<div class="wrap"><table>
-<tr><th>Severity</th><th>Check</th><th>Object</th><th>Location</th><th>Detail</th></tr>
-{{range .Failures}}<tr>
+<h2>Findings</h2>
+<div class="controls">
+  <input type="search" id="q" placeholder="Search check, object, zone, rule name, message…" autocomplete="off">
+  <span class="chip c-fail on" data-kind="verdict" data-val="fail">fail</span>
+  <span class="chip c-note on" data-kind="verdict" data-val="note">note</span>
+  <span class="chip c-pass" data-kind="verdict" data-val="pass">pass</span>
+  <span class="chip c-critical on" data-kind="severity" data-val="critical">critical</span>
+  <span class="chip c-high on" data-kind="severity" data-val="high">high</span>
+  <span class="chip c-warning on" data-kind="severity" data-val="warning">warning</span>
+  <span class="chip c-informational on" data-kind="severity" data-val="informational">informational</span>
+  <span class="count" id="count"></span>
+</div>
+<div class="wrap"><table id="findings">
+<tr><th>Verdict</th><th>Severity</th><th>Check</th><th>Object</th><th>Location</th><th>Detail</th></tr>
+{{range .Findings}}<tr data-verdict="{{.Verdict}}" data-severity="{{.Severity}}">
+  <td class="verdict v-{{.Verdict}}">{{.Verdict}}</td>
   <td class="sev sev-{{.Severity}}">{{.Severity}}</td>
   <td>{{.Title}}</td>
   <td class="mono">{{.Object.Feature}}{{if .Object.Name}} / {{.Object.Name}}{{end}}</td>
@@ -61,17 +81,42 @@ td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 </tr>{{end}}
 </table></div>
 
-{{if .Notes}}<h2>Notes ({{len .Notes}})</h2>
-<div class="wrap"><table>
-<tr><th>Check</th><th>Object</th><th>Location</th><th>Detail</th></tr>
-{{range .Notes}}<tr>
-  <td>{{.Title}}</td>
-  <td class="mono">{{.Object.Feature}}{{if .Object.Name}} / {{.Object.Name}}{{end}}</td>
-  <td>{{.Object.Location}}</td>
-  <td>{{.Message}}</td>
-</tr>{{end}}
-</table></div>{{end}}
-
 <div class="foot">open-pan-bpa is an independent community tool, not affiliated with or endorsed by Palo Alto Networks, Inc. This report never leaves this machine.</div>
+
+<script>
+(function () {
+  var q = document.getElementById('q');
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#findings tr[data-verdict]'));
+  var count = document.getElementById('count');
+  rows.forEach(function (r) { r.dataset.search = r.textContent.toLowerCase(); });
+
+  function active(kind) {
+    var on = {};
+    chips.forEach(function (c) {
+      if (c.dataset.kind === kind && c.classList.contains('on')) { on[c.dataset.val] = true; }
+    });
+    return on;
+  }
+  function apply() {
+    var needle = q.value.trim().toLowerCase();
+    var verdicts = active('verdict'), severities = active('severity');
+    var shown = 0;
+    rows.forEach(function (r) {
+      var ok = verdicts[r.dataset.verdict] &&
+        (r.dataset.verdict === 'note' || severities[r.dataset.severity]) &&
+        (!needle || r.dataset.search.indexOf(needle) !== -1);
+      r.classList.toggle('hidden', !ok);
+      if (ok) { shown++; }
+    });
+    count.textContent = shown + ' / ' + rows.length + ' findings';
+  }
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () { c.classList.toggle('on'); apply(); });
+  });
+  q.addEventListener('input', apply);
+  apply();
+})();
+</script>
 </body>
 </html>
