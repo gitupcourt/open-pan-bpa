@@ -87,6 +87,80 @@
                 <packet-capture>yes</packet-capture>
               </entry>
             </virus>
+            <spyware>
+              <entry name="strict-as">
+                <cloud-inline-analysis>yes</cloud-inline-analysis>
+                <mica-engine-spyware-enabled>
+                  <entry name="HTTP Command and Control detector"><inline-policy-action>reset-both</inline-policy-action></entry>
+                </mica-engine-spyware-enabled>
+                <rules>
+                  <entry name="block-bad">
+                    <action><reset-both/></action>
+                    <severity><member>critical</member><member>high</member><member>medium</member></severity>
+                    <packet-capture>single-packet</packet-capture>
+                  </entry>
+                  <entry name="watch-low">
+                    <action><default/></action>
+                    <severity><member>low</member><member>informational</member></severity>
+                    <packet-capture>disable</packet-capture>
+                  </entry>
+                </rules>
+                <botnet-domains>
+                  <dns-security-categories>
+                    <entry name="pan-dns-sec-adtracking"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-ddns"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-grayware"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-malware"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-phishing"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-proxy"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-recent"><action>sinkhole</action><log-level>default</log-level><packet-capture>single-packet</packet-capture></entry>
+                    <entry name="pan-dns-sec-parked"><action>sinkhole</action><log-level>default</log-level><packet-capture>disable</packet-capture></entry>
+                    <entry name="pan-dns-sec-cc"><action>sinkhole</action><log-level>high</log-level><packet-capture>extended-capture</packet-capture></entry>
+                  </dns-security-categories>
+                </botnet-domains>
+              </entry>
+              <entry name="lazy-as">
+                <rules>
+                  <entry name="detect-only">
+                    <action><alert/></action>
+                    <severity><member>critical</member></severity>
+                    <packet-capture>disable</packet-capture>
+                  </entry>
+                </rules>
+                <threat-exception>
+                  <entry name="99999"/>
+                </threat-exception>
+              </entry>
+            </spyware>
+            <vulnerability>
+              <entry name="strict-vp">
+                <cloud-inline-analysis>yes</cloud-inline-analysis>
+                <rules>
+                  <entry name="block-exploits">
+                    <action><reset-both/></action>
+                    <severity><member>critical</member><member>high</member><member>medium</member></severity>
+                    <host>any</host>
+                    <packet-capture>single-packet</packet-capture>
+                  </entry>
+                  <entry name="watch-low">
+                    <action><default/></action>
+                    <severity><member>low</member><member>informational</member></severity>
+                    <host>any</host>
+                    <packet-capture>disable</packet-capture>
+                  </entry>
+                </rules>
+              </entry>
+              <entry name="lazy-vp">
+                <rules>
+                  <entry name="default-crit">
+                    <action><default/></action>
+                    <severity><member>critical</member></severity>
+                    <host>client</host>
+                    <packet-capture>disable</packet-capture>
+                  </entry>
+                </rules>
+              </entry>
+            </vulnerability>
             <file-blocking>
               <entry name="reference-fb">
                 <rules>

@@ -20,6 +20,12 @@ func parseProfiles(scope *xmlnode.Node, location string, cfg *model.Config) {
 		for _, e := range profiles.Entries("wildfire-analysis") {
 			cfg.WildfireProfiles = append(cfg.WildfireProfiles, parseWildfire(e, location))
 		}
+		for _, e := range profiles.Entries("spyware") {
+			cfg.SpywareProfiles = append(cfg.SpywareProfiles, parseSpyware(e, location))
+		}
+		for _, e := range profiles.Entries("vulnerability") {
+			cfg.VulnerabilityProfiles = append(cfg.VulnerabilityProfiles, parseVulnerability(e, location))
+		}
 	}
 	for _, e := range scope.All("log-settings", "profiles", "entry") {
 		cfg.LogForwardingProfiles = append(cfg.LogForwardingProfiles, parseLogForwarding(e, location))
@@ -82,6 +88,72 @@ func parseWildfire(e *xmlnode.Node, location string) model.WildfireProfile {
 			Direction:    r.ChildText("direction"),
 			Analysis:     r.ChildText("analysis"),
 		})
+	}
+	return p
+}
+
+// actionName returns the action verb for rules that encode the action as a
+// child element name (<action><reset-both/></action>).
+func actionName(rule *xmlnode.Node) string {
+	a := rule.First("action")
+	if a == nil || len(a.Children) == 0 {
+		return ""
+	}
+	return a.Children[0].Name
+}
+
+func parseThreatRule(r *xmlnode.Node) model.ThreatRule {
+	return model.ThreatRule{
+		Name:          r.Attr("name"),
+		Severities:    r.Members("severity"),
+		Action:        actionName(r),
+		PacketCapture: r.ChildText("packet-capture"),
+		Host:          r.ChildText("host"),
+	}
+}
+
+func parseSpyware(e *xmlnode.Node, location string) model.SpywareProfile {
+	p := model.SpywareProfile{
+		Name:                e.Attr("name"),
+		Location:            location,
+		CloudInlineAnalysis: yes(e.ChildText("cloud-inline-analysis")),
+		MicaEngines:         map[string]string{},
+	}
+	for _, r := range e.All("rules", "entry") {
+		p.Rules = append(p.Rules, parseThreatRule(r))
+	}
+	for _, tx := range e.Entries("threat-exception") {
+		p.ThreatExceptions = append(p.ThreatExceptions, tx.Attr("name"))
+	}
+	for _, m := range e.Entries("mica-engine-spyware-enabled") {
+		p.MicaEngines[m.Attr("name")] = m.ChildText("inline-policy-action")
+	}
+	for _, c := range e.All("botnet-domains", "dns-security-categories", "entry") {
+		p.DNSCategories = append(p.DNSCategories, model.DNSCategory{
+			Name:          c.Attr("name"),
+			Action:        c.ChildText("action"),
+			LogLevel:      c.ChildText("log-level"),
+			PacketCapture: c.ChildText("packet-capture"),
+		})
+	}
+	return p
+}
+
+func parseVulnerability(e *xmlnode.Node, location string) model.VulnerabilityProfile {
+	p := model.VulnerabilityProfile{
+		Name:                e.Attr("name"),
+		Location:            location,
+		CloudInlineAnalysis: yes(e.ChildText("cloud-inline-analysis")),
+		MicaEngines:         map[string]string{},
+	}
+	for _, r := range e.All("rules", "entry") {
+		p.Rules = append(p.Rules, parseThreatRule(r))
+	}
+	for _, tx := range e.Entries("threat-exception") {
+		p.ThreatExceptions = append(p.ThreatExceptions, tx.Attr("name"))
+	}
+	for _, m := range e.Entries("mica-engine-vulnerability-enabled") {
+		p.MicaEngines[m.Attr("name")] = m.ChildText("inline-policy-action")
 	}
 	return p
 }

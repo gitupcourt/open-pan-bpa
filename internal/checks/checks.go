@@ -20,6 +20,9 @@ import (
 // Registry returns all built-in evaluators.
 func Registry() engine.Registry {
 	reg := profileRegistry()
+	for name, ev := range threatRegistry() {
+		reg[name] = ev
+	}
 	for name, ev := range coreRegistry() {
 		reg[name] = ev
 	}
