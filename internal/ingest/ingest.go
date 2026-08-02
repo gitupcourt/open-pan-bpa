@@ -21,6 +21,27 @@ import (
 // single-digit MB; the vendor's own service documents a 100 MB limit.
 const maxConfigBytes = 256 << 20 // 256 MiB
 
+// maxArchiveBytes caps the total decompressed bytes consumed while scanning a
+// tech support archive, including entries we skip past. Legitimate TSFs
+// decompress to low single-digit GiB at most; without this cap a crafted
+// gzip bomb could spin the scan indefinitely.
+const maxArchiveBytes = 16 << 30 // 16 GiB
+
+// cappedReader errors once more than limit bytes have been read through it.
+type cappedReader struct {
+	r     io.Reader
+	limit int64
+}
+
+func (c *cappedReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.limit -= int64(n)
+	if c.limit < 0 {
+		return n, fmt.Errorf("archive exceeds %d decompressed bytes", int64(maxArchiveBytes))
+	}
+	return n, err
+}
+
 // Config file candidates inside a TSF, in preference order. The merged config
 // (hidden dotfile) includes Panorama-pushed content and is preferred when
 // present.
@@ -77,7 +98,7 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 	var bestData []byte
 	var bestName string
 
-	tr := tar.NewReader(gz)
+	tr := tar.NewReader(&cappedReader{r: gz, limit: maxArchiveBytes})
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
