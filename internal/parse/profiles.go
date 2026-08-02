@@ -29,6 +29,9 @@ func parseProfiles(scope *xmlnode.Node, location string, cfg *model.Config) {
 		for _, e := range profiles.Entries("decryption") {
 			cfg.DecryptionProfiles = append(cfg.DecryptionProfiles, parseDecryption(e, location))
 		}
+		for _, e := range profiles.Entries("url-filtering") {
+			cfg.URLFilteringProfiles = append(cfg.URLFilteringProfiles, parseURLFiltering(e, location))
+		}
 	}
 	for _, e := range scope.All("log-settings", "profiles", "entry") {
 		cfg.LogForwardingProfiles = append(cfg.LogForwardingProfiles, parseLogForwarding(e, location))
@@ -117,6 +120,39 @@ func parseDecryption(e *xmlnode.Node, location string) model.DecryptionProfile {
 		SSHProxy:         flagMap(e.First("ssh-proxy")),
 		ProtocolSettings: flagMap(e.First("ssl-protocol-settings")),
 	}
+}
+
+func parseURLFiltering(e *xmlnode.Node, location string) model.URLFilteringProfile {
+	p := model.URLFilteringProfile{
+		Name:             e.Attr("name"),
+		Location:         location,
+		Block:            e.Members("block"),
+		Alert:            e.Members("alert"),
+		Allow:            e.Members("allow"),
+		Continue:         e.Members("continue"),
+		LogContainerOnly: logContainerDefault(e),
+		CloudInlineCat:   yes(e.ChildText("cloud-inline-cat")),
+		MlavEngines:      map[string]string{},
+	}
+	if ce := e.First("credential-enforcement"); ce != nil {
+		p.CredBlock = ce.Members("block")
+		p.CredAllow = ce.Members("allow")
+		if m := ce.First("mode"); m != nil && len(m.Children) > 0 {
+			p.CredMode = m.Children[0].Name
+		}
+	}
+	for _, m := range e.Entries("mlav-engine-urlbased-enabled") {
+		p.MlavEngines[m.Attr("name")] = m.ChildText("mlav-policy-action")
+	}
+	return p
+}
+
+// logContainerDefault: log-container-page-only defaults to yes when absent.
+func logContainerDefault(e *xmlnode.Node) bool {
+	if n := e.First("log-container-page-only"); n != nil {
+		return yes(n.TrimText())
+	}
+	return true
 }
 
 // actionName returns the action verb for rules that encode the action as a
