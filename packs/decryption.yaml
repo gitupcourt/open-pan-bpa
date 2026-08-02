@@ -1,0 +1,130 @@
+# Decryption-profile check pack.
+pack: decryption
+version: 0.1.0
+checks:
+  - slug: dp-forward-proxy-blocks
+    title: SSL Forward Proxy protections should all be enabled (Strip ALPN off)
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_forward_proxy
+    rationale: >-
+      Each disabled forward-proxy block setting (expired certs, untrusted
+      issuers, unknown status, unsupported modes, resource exhaustion) is a
+      session class that proceeds without verification; Strip ALPN stays off
+      so HTTP/2 remains decryptable.
+    remediation: Enable every block/verify option in SSL Forward Proxy; leave Strip ALPN disabled.
+    pan_bpa_ids: [55]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-inbound-inspection-blocks
+    title: SSL Inbound Inspection protections should all be enabled
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_inbound_inspection
+    rationale: >-
+      Inbound inspection without unsupported-mode and resource blocking lets
+      exactly the abnormal sessions most worth inspecting bypass it.
+    remediation: Enable every block option under SSL Inbound Inspection.
+    pan_bpa_ids: [56]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-tls-min-version
+    title: Decryption profiles should require TLS 1.2 or higher
+    severity: critical
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_tls_versions
+    rationale: >-
+      A TLS 1.2 floor automatically excludes downgrade paths onto broken
+      protocol versions and their cipher suites.
+    remediation: Set Min Version to TLSv1.2 (Max Version max).
+    pan_bpa_ids: [57]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-no-decrypt-expired
+    title: No-decrypt traffic should block expired certificates
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_no_decrypt_expired
+    rationale: >-
+      Traffic you choose not to decrypt still deserves certificate hygiene;
+      an expired certificate on an opaque session is a red flag with no
+      compensating visibility.
+    remediation: Enable Block sessions with expired certificates under No Decryption.
+    pan_bpa_ids: [58]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-no-decrypt-untrusted
+    title: No-decrypt traffic should block untrusted issuers
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_no_decrypt_untrust
+    rationale: >-
+      An untrusted issuer on a session you will not decrypt means no layer
+      ever verifies that endpoint.
+    remediation: Enable Block sessions with untrusted issuers under No Decryption.
+    pan_bpa_ids: [373]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-ssh-proxy-blocks
+    title: SSH Proxy unsupported-mode protections should be enabled
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_ssh_proxy
+    rationale: >-
+      SSH Proxy without error/unsupported-mode blocking allows sessions the
+      proxy cannot inspect — including tunneled port forwarding — to proceed.
+    remediation: Enable all SSH Proxy block options.
+    pan_bpa_ids: [59]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-encryption-algorithms
+    title: Deprecated TLS encryption algorithms should be disabled
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_encryption_algos
+    rationale: >-
+      3DES, RC4, and CBC-mode/128-bit AES fall short of the quantum-safe
+      posture; AES-256-GCM and CHACHA20-POLY1305 are the surviving set.
+    remediation: Disable 3DES, RC4, AES-128-CBC, AES-256-CBC, and AES-128-GCM.
+    pan_bpa_ids: [371]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-auth-algorithms
+    title: Deprecated TLS authentication algorithms should be disabled
+    severity: warning
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_auth_algos
+    rationale: SHA-1 (and MD5) handshake integrity is collision-broken; require SHA-256+.
+    remediation: Disable SHA1 and MD5 authentication algorithms.
+    pan_bpa_ids: [372]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices
+
+  - slug: dp-pqc-key-exchange
+    title: Post-quantum key exchange should be enabled
+    severity: informational
+    section: objects
+    feature: decryption_profile
+    evaluator: dp_pqc_key_exchange
+    rationale: >-
+      Harvest-now-decrypt-later makes classical-only key exchange a standing
+      liability; PQC hybrid key exchange closes it where supported.
+    remediation: Enable PQC Standardized (or Experimental) key exchange in SSL Protocol Settings.
+    pan_bpa_ids: [375]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices

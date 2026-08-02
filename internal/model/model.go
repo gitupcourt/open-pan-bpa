@@ -22,6 +22,7 @@ type Config struct {
 	LogForwardingProfiles []LogForwardingProfile
 	SpywareProfiles       []SpywareProfile
 	VulnerabilityProfiles []VulnerabilityProfile
+	DecryptionProfiles    []DecryptionProfile
 
 	// LicenseInfoAvailable is true when the input carried license state
 	// (tech support files do; bare config XML exports cannot).
@@ -166,6 +167,19 @@ type VulnerabilityProfile struct {
 	ThreatExceptions    []string
 	CloudInlineAnalysis bool
 	MicaEngines         map[string]string
+}
+
+// DecryptionProfile is a normalized Decryption profile. Each section is a
+// flat flag map (XML element name -> text); absent flags fall back to
+// per-flag content defaults encoded in the checks.
+type DecryptionProfile struct {
+	Name             string
+	Location         string
+	ForwardProxy     map[string]string // ssl-forward-proxy
+	InboundProxy     map[string]string // ssl-inbound-proxy
+	NoProxy          map[string]string // ssl-no-proxy
+	SSHProxy         map[string]string // ssh-proxy
+	ProtocolSettings map[string]string // ssl-protocol-settings
 }
 
 // License is one entry from the device's license inventory.
