@@ -111,6 +111,7 @@ func loadReferenceReports(t *testing.T, dir string) map[string]refVerdicts {
 				}
 			}
 		}
+		t.Logf("reference loaded: %s <- %s (features: %d)", rep.Information.Hostname, filepath.Base(path), len(rv))
 		out[rep.Information.Hostname] = rv
 		return nil
 	})
