@@ -161,6 +161,57 @@
                 </rules>
               </entry>
             </vulnerability>
+            <decryption>
+              <entry name="tight-dp">
+                <ssl-forward-proxy>
+                  <auto-include-altname>yes</auto-include-altname>
+                  <block-client-cert>yes</block-client-cert>
+                  <block-expired-certificate>yes</block-expired-certificate>
+                  <block-if-hsm-unavailable>yes</block-if-hsm-unavailable>
+                  <block-if-no-resource>yes</block-if-no-resource>
+                  <block-timeout-cert>yes</block-timeout-cert>
+                  <block-unknown-cert>yes</block-unknown-cert>
+                  <block-unsupported-cipher>yes</block-unsupported-cipher>
+                  <block-unsupported-version>yes</block-unsupported-version>
+                  <block-untrusted-issuer>yes</block-untrusted-issuer>
+                  <restrict-cert-exts>yes</restrict-cert-exts>
+                  <strip-alpn>no</strip-alpn>
+                </ssl-forward-proxy>
+                <ssl-inbound-proxy>
+                  <block-if-hsm-unavailable>yes</block-if-hsm-unavailable>
+                  <block-if-no-resource>yes</block-if-no-resource>
+                  <block-tls13-downgrade-no-resource>yes</block-tls13-downgrade-no-resource>
+                  <block-unsupported-cipher>yes</block-unsupported-cipher>
+                  <block-unsupported-version>yes</block-unsupported-version>
+                </ssl-inbound-proxy>
+                <ssl-no-proxy>
+                  <block-expired-certificate>yes</block-expired-certificate>
+                  <block-untrusted-issuer>yes</block-untrusted-issuer>
+                </ssl-no-proxy>
+                <ssh-proxy>
+                  <block-if-no-resource>yes</block-if-no-resource>
+                  <block-ssh-errors>yes</block-ssh-errors>
+                  <block-unsupported-alg>yes</block-unsupported-alg>
+                  <block-unsupported-version>yes</block-unsupported-version>
+                </ssh-proxy>
+                <ssl-protocol-settings>
+                  <min-version>tls1-2</min-version>
+                  <max-version>max</max-version>
+                  <enc-algo-3des>no</enc-algo-3des>
+                  <enc-algo-rc4>no</enc-algo-rc4>
+                  <enc-algo-aes-128-cbc>no</enc-algo-aes-128-cbc>
+                  <enc-algo-aes-256-cbc>no</enc-algo-aes-256-cbc>
+                  <enc-algo-aes-128-gcm>no</enc-algo-aes-128-gcm>
+                  <auth-algo-sha1>no</auth-algo-sha1>
+                  <keyxchg-algo-pqc-standardized>yes</keyxchg-algo-pqc-standardized>
+                </ssl-protocol-settings>
+              </entry>
+              <entry name="loose-dp">
+                <ssl-protocol-settings>
+                  <min-version>tls1-0</min-version>
+                </ssl-protocol-settings>
+              </entry>
+            </decryption>
             <file-blocking>
               <entry name="reference-fb">
                 <rules>

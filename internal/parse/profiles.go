@@ -26,6 +26,9 @@ func parseProfiles(scope *xmlnode.Node, location string, cfg *model.Config) {
 		for _, e := range profiles.Entries("vulnerability") {
 			cfg.VulnerabilityProfiles = append(cfg.VulnerabilityProfiles, parseVulnerability(e, location))
 		}
+		for _, e := range profiles.Entries("decryption") {
+			cfg.DecryptionProfiles = append(cfg.DecryptionProfiles, parseDecryption(e, location))
+		}
 	}
 	for _, e := range scope.All("log-settings", "profiles", "entry") {
 		cfg.LogForwardingProfiles = append(cfg.LogForwardingProfiles, parseLogForwarding(e, location))
@@ -90,6 +93,30 @@ func parseWildfire(e *xmlnode.Node, location string) model.WildfireProfile {
 		})
 	}
 	return p
+}
+
+// flagMap flattens an element's children into name -> trimmed text.
+func flagMap(n *xmlnode.Node) map[string]string {
+	if n == nil {
+		return nil
+	}
+	m := make(map[string]string, len(n.Children))
+	for _, c := range n.Children {
+		m[c.Name] = c.TrimText()
+	}
+	return m
+}
+
+func parseDecryption(e *xmlnode.Node, location string) model.DecryptionProfile {
+	return model.DecryptionProfile{
+		Name:             e.Attr("name"),
+		Location:         location,
+		ForwardProxy:     flagMap(e.First("ssl-forward-proxy")),
+		InboundProxy:     flagMap(e.First("ssl-inbound-proxy")),
+		NoProxy:          flagMap(e.First("ssl-no-proxy")),
+		SSHProxy:         flagMap(e.First("ssh-proxy")),
+		ProtocolSettings: flagMap(e.First("ssl-protocol-settings")),
+	}
 }
 
 // actionName returns the action verb for rules that encode the action as a
