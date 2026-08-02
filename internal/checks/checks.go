@@ -19,6 +19,14 @@ import (
 
 // Registry returns all built-in evaluators.
 func Registry() engine.Registry {
+	reg := profileRegistry()
+	for name, ev := range coreRegistry() {
+		reg[name] = ev
+	}
+	return reg
+}
+
+func coreRegistry() engine.Registry {
 	return engine.Registry{
 		"rule_description":        ruleDescription,
 		"rule_service_specific":   ruleServiceSpecific,

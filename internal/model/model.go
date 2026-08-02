@@ -16,10 +16,108 @@ type Config struct {
 	ProfileGroups []ProfileGroup
 	Device        Device
 
+	AntivirusProfiles     []AntivirusProfile
+	FileBlockingProfiles  []FileBlockingProfile
+	WildfireProfiles      []WildfireProfile
+	LogForwardingProfiles []LogForwardingProfile
+
 	// LicenseInfoAvailable is true when the input carried license state
 	// (tech support files do; bare config XML exports cannot).
 	LicenseInfoAvailable bool
 	Licenses             []License
+}
+
+// AVDecoder is one protocol decoder row in an Antivirus profile. Empty action
+// strings mean the profile inherits the content default for that decoder.
+type AVDecoder struct {
+	Name           string
+	Action         string
+	WildfireAction string
+	MlavAction     string
+}
+
+// AVDecoderNames are the seven standard Antivirus protocol decoders.
+var AVDecoderNames = []string{"ftp", "http", "http2", "imap", "pop3", "smb", "smtp"}
+
+// AVDecodersDefaultResetBoth are decoders whose content-default action is
+// already reset-both, so an explicit "default" is acceptable there.
+var AVDecodersDefaultResetBoth = map[string]bool{"ftp": true, "http": true, "http2": true, "smb": true}
+
+// AntivirusProfile is a normalized Antivirus (virus) profile.
+type AntivirusProfile struct {
+	Name             string
+	Location         string
+	Decoders         []AVDecoder
+	MlavEngines      map[string]string // model name -> mlav-policy-action
+	AppExceptions    map[string]string // application name -> action
+	ThreatExceptions []string
+	PacketCapture    bool
+}
+
+// Decoder returns the decoder row by name, with zero value when absent.
+func (p AntivirusProfile) Decoder(name string) AVDecoder {
+	for _, d := range p.Decoders {
+		if d.Name == name {
+			return d
+		}
+	}
+	return AVDecoder{Name: name}
+}
+
+// FileBlockingRule is one rule in a File Blocking profile.
+type FileBlockingRule struct {
+	Name         string
+	Applications []string
+	FileTypes    []string
+	Direction    string
+	Action       string
+}
+
+// FileBlockingProfile is a normalized File Blocking profile.
+type FileBlockingProfile struct {
+	Name     string
+	Location string
+	Rules    []FileBlockingRule
+}
+
+// WildfireRule is one rule in a WildFire Analysis profile.
+type WildfireRule struct {
+	Name         string
+	Applications []string
+	FileTypes    []string
+	Direction    string
+	Analysis     string
+}
+
+// WildfireProfile is a normalized WildFire Analysis profile.
+type WildfireProfile struct {
+	Name                string
+	Location            string
+	Rules               []WildfireRule
+	CloudInlineAnalysis bool
+}
+
+// LogForwardingMatch is one match-list entry in a Log Forwarding profile.
+type LogForwardingMatch struct {
+	Name           string
+	LogType        string
+	SendToPanorama bool
+	SendSyslog     []string
+	SendHTTP       []string
+	SendSNMP       []string
+	SendEmail      []string
+}
+
+// HasDestination reports whether the match forwards anywhere at all.
+func (m LogForwardingMatch) HasDestination() bool {
+	return m.SendToPanorama || len(m.SendSyslog)+len(m.SendHTTP)+len(m.SendSNMP)+len(m.SendEmail) > 0
+}
+
+// LogForwardingProfile is a normalized Log Forwarding profile.
+type LogForwardingProfile struct {
+	Name     string
+	Location string
+	Matches  []LogForwardingMatch
 }
 
 // License is one entry from the device's license inventory.

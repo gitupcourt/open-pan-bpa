@@ -41,13 +41,15 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 		for _, e := range vsys.All("rulebase", "security", "rules", "entry") {
 			cfg.SecurityRules = append(cfg.SecurityRules, parseSecurityRule(e, name))
 		}
+		parseProfiles(vsys, name, cfg)
 	}
 
-	// Shared profile groups (firewall shared scope).
+	// Shared-scope objects (present on firewalls with Panorama-pushed config).
 	if shared := root.First("shared"); shared != nil {
 		for _, e := range shared.Entries("profile-group") {
 			cfg.ProfileGroups = append(cfg.ProfileGroups, parseProfileGroup(e, "shared"))
 		}
+		parseProfiles(shared, "shared", cfg)
 	}
 
 	// A config with no vsys is not a firewall. Refuse loudly rather than

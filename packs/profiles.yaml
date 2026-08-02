@@ -1,0 +1,232 @@
+# Security-profile check pack: Antivirus, File Blocking, WildFire Analysis,
+# and Log Forwarding profiles. Expected values are independently derived from
+# Palo Alto Networks' public best-practices documentation; pan_bpa_ids remain
+# cross-references for operators migrating from vendor reports.
+pack: profiles
+version: 0.1.0
+checks:
+  - slug: av-decoder-action
+    title: Antivirus decoder actions should be reset-both for every protocol
+    severity: critical
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_decoder_actions
+    rationale: >-
+      Resetting both ends of an infected transfer stops delivery cleanly. The
+      mail decoders (SMTP, IMAP, POP3) inherit a weaker content default, so
+      leaving them on "default" means detected viruses are not blocked there.
+    remediation: Set each decoder's signature Action to reset-both.
+    pan_bpa_ids: [33]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: av-wildfire-action
+    title: Antivirus WildFire signature actions should be reset-both for every protocol
+    severity: critical
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_wildfire_actions
+    rationale: >-
+      WildFire signatures arrive minutes after a zero-day is identified;
+      pairing them with a non-blocking action wastes that speed.
+    remediation: Set each decoder's WildFire Action to reset-both.
+    pan_bpa_ids: [34]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: av-inline-ml-action
+    title: Antivirus WildFire Inline ML actions should be reset-both for every protocol
+    severity: warning
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_mlav_actions
+    rationale: >-
+      Inline ML blocks never-seen malicious files in the data path; a
+      non-blocking action reduces it to detection-only.
+    remediation: Set each decoder's WildFire Inline ML Action to reset-both.
+    pan_bpa_ids: [271]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: av-inline-ml-models
+    title: WildFire Inline ML models should be enabled (not alert-only or disabled)
+    severity: warning
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_mlav_engines
+    rationale: >-
+      Each disabled or alert-only model class (executables, scripts, ELF)
+      is a file family the firewall sees but does not stop.
+    remediation: Enable every WildFire Inline ML model in the profile.
+    pan_bpa_ids: [272]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: av-threat-exceptions
+    title: Antivirus profiles should not carry threat exceptions
+    severity: informational
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_threat_exceptions
+    rationale: >-
+      An excepted signature is permanently unenforced. Confirmed false
+      positives should be fixed in content via support, then unexcepted.
+    remediation: Remove threat exceptions once the underlying issue is resolved.
+    pan_bpa_ids: [31]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: av-application-exceptions
+    title: Antivirus profiles should not except applications from inspection
+    severity: informational
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_app_exceptions
+    rationale: >-
+      An application exception with an allow action means that application's
+      traffic is never virus-scanned at all.
+    remediation: Remove application exceptions; resolve false positives via support.
+    pan_bpa_ids: [32]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: av-packet-capture
+    title: Packet capture should not be enabled on broad Antivirus profiles
+    severity: informational
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_packet_capture
+    rationale: >-
+      Capturing packets for every virus event on a widely applied profile
+      taxes logging; use a dedicated narrow profile when investigating.
+    remediation: Disable packet capture on broadly attached profiles.
+    pan_bpa_ids: [35]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: av-one-sided-resets
+    title: Avoid reset-client/reset-server antivirus actions without cause
+    severity: informational
+    section: objects
+    feature: antivirus_profile
+    evaluator: av_reset_client_server
+    rationale: >-
+      One-sided resets leave the other end of the connection live; reserve
+      them for documented cases where resetting one side breaks something.
+    remediation: Prefer reset-both.
+    pan_bpa_ids: [206]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: fb-best-practice-rules
+    title: File Blocking profiles should block the malicious file-type list and alert on the rest
+    severity: warning
+    section: objects
+    feature: file_blocking_profile
+    evaluator: fb_best_practice_rules
+    rationale: >-
+      The reference posture is one block rule for exactly the risky file-type
+      list (any application, both directions) and one alert rule covering
+      every other type, so all file movement is at least visible. Rules that
+      give other types different treatment (continue prompts, extra blocks)
+      diverge from that posture and are flagged.
+    remediation: >-
+      Structure the profile as a block rule for the reference list plus an
+      alert-all rule; handle deliberate deviations as documented exceptions.
+    pan_bpa_ids: [45]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/internet-gateway-best-practices/best-practice-internet-gateway-security-policy/create-best-practice-security-profiles
+
+  - slug: wf-forward-everything
+    title: WildFire Analysis profiles should forward all files, both directions, any application
+    severity: critical
+    section: objects
+    feature: wildfire_analysis_profile
+    evaluator: wf_forward_all
+    rationale: >-
+      Any file type or direction excluded from forwarding is a family of
+      files that never gets a sandbox verdict.
+    remediation: Use a rule with application any, file type any, direction both.
+    pan_bpa_ids: [47]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-wildfire/administration/advanced-wildfire-deployment-best-practices/advanced-wildfire-best-practices
+
+  - slug: wf-inline-cloud-analysis
+    title: WildFire profiles should enable Inline Cloud Analysis
+    severity: warning
+    section: objects
+    feature: wildfire_analysis_profile
+    evaluator: wf_inline_cloud
+    rationale: >-
+      Inline cloud analysis returns machine-learning verdicts in the data
+      path instead of waiting for the sandbox round-trip.
+    remediation: Enable Inline Cloud Analysis on the profile.
+    pan_bpa_ids: [363]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-wildfire
+
+  - slug: lf-external-forwarding
+    title: Log Forwarding profiles should send logs off-box
+    severity: warning
+    section: objects
+    feature: log_forwarding_profile
+    evaluator: lf_external_forwarding
+    rationale: >-
+      A forwarding profile with no destination leaves logs on the firewall,
+      where storage is small and rotation destroys evidence.
+    remediation: Forward to Panorama, syslog, or an HTTP collector.
+    pan_bpa_ids: [51]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: lf-forward-threat
+    title: Log Forwarding profiles should forward Threat logs
+    severity: warning
+    section: objects
+    feature: log_forwarding_profile
+    evaluator: lf_log_type
+    params: { log_type: threat }
+    rationale: Threat events that never leave the box can't be correlated or retained.
+    remediation: Add a threat log-type match with an off-box destination.
+    pan_bpa_ids: [52]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: lf-forward-wildfire
+    title: Log Forwarding profiles should forward WildFire logs
+    severity: warning
+    section: objects
+    feature: log_forwarding_profile
+    evaluator: lf_log_type
+    params: { log_type: wildfire }
+    rationale: WildFire verdicts belong in the SIEM alongside the traffic they describe.
+    remediation: Add a wildfire log-type match with an off-box destination.
+    pan_bpa_ids: [53]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: lf-forward-url
+    title: Log Forwarding profiles should forward URL logs
+    severity: informational
+    section: objects
+    feature: log_forwarding_profile
+    evaluator: lf_log_type
+    params: { log_type: url }
+    rationale: URL activity is a primary investigation source; keep it off-box.
+    remediation: Add a url log-type match with an off-box destination.
+    pan_bpa_ids: [259]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
+
+  - slug: lf-forward-auth
+    title: Log Forwarding profiles should forward Authentication logs
+    severity: informational
+    section: objects
+    feature: log_forwarding_profile
+    evaluator: lf_log_type
+    params: { log_type: auth }
+    rationale: Authentication events off-box support incident timelines and audits.
+    remediation: Add an auth log-type match with an off-box destination.
+    pan_bpa_ids: [260]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices
