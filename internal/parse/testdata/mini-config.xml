@@ -55,6 +55,114 @@
               <network/>
             </entry>
           </zone>
+          <profiles>
+            <virus>
+              <entry name="strict-av">
+                <decoder>
+                  <entry name="ftp"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                  <entry name="http"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                  <entry name="http2"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                  <entry name="imap"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                  <entry name="pop3"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                  <entry name="smb"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                  <entry name="smtp"><action>reset-both</action><wildfire-action>reset-both</wildfire-action><mlav-action>reset-both</mlav-action></entry>
+                </decoder>
+                <mlav-engine-filebased-enabled>
+                  <entry name="Windows Executables"><mlav-policy-action>enable</mlav-policy-action></entry>
+                </mlav-engine-filebased-enabled>
+              </entry>
+              <entry name="lazy-av">
+                <decoder>
+                  <entry name="smtp"><action>default</action><wildfire-action>reset-server</wildfire-action></entry>
+                </decoder>
+                <mlav-engine-filebased-enabled>
+                  <entry name="Windows Executables"><mlav-policy-action>enable(alert-only)</mlav-policy-action></entry>
+                </mlav-engine-filebased-enabled>
+                <application>
+                  <entry name="some-app"><action>allow</action></entry>
+                </application>
+                <threat-exception>
+                  <entry name="12345"/>
+                </threat-exception>
+                <packet-capture>yes</packet-capture>
+              </entry>
+            </virus>
+            <file-blocking>
+              <entry name="reference-fb">
+                <rules>
+                  <entry name="block-risky">
+                    <application><member>any</member></application>
+                    <direction>both</direction>
+                    <action>block</action>
+                    <file-type><member>7z</member><member>bat</member><member>chm</member><member>class</member><member>cpl</member><member>dll</member><member>hlp</member><member>hta</member><member>jar</member><member>ocx</member><member>pif</member><member>scr</member><member>torrent</member><member>vbe</member><member>wsf</member></file-type>
+                  </entry>
+                  <entry name="alert-rest">
+                    <application><member>any</member></application>
+                    <direction>both</direction>
+                    <action>alert</action>
+                    <file-type><member>any</member></file-type>
+                  </entry>
+                </rules>
+              </entry>
+              <entry name="drifted-fb">
+                <rules>
+                  <entry name="block-some">
+                    <application><member>any</member></application>
+                    <direction>both</direction>
+                    <action>block</action>
+                    <file-type><member>7z</member><member>exe</member></file-type>
+                  </entry>
+                  <entry name="continue-encrypted">
+                    <application><member>any</member></application>
+                    <direction>both</direction>
+                    <action>continue</action>
+                    <file-type><member>encrypted-zip</member></file-type>
+                  </entry>
+                </rules>
+              </entry>
+            </file-blocking>
+            <wildfire-analysis>
+              <entry name="forward-all-wf">
+                <cloud-inline-analysis>yes</cloud-inline-analysis>
+                <rules>
+                  <entry name="all">
+                    <application><member>any</member></application>
+                    <file-type><member>any</member></file-type>
+                    <direction>both</direction>
+                    <analysis>public-cloud</analysis>
+                  </entry>
+                </rules>
+              </entry>
+              <entry name="narrow-wf">
+                <rules>
+                  <entry name="uploads-only">
+                    <application><member>web-browsing</member></application>
+                    <file-type><member>pe</member></file-type>
+                    <direction>upload</direction>
+                    <analysis>public-cloud</analysis>
+                  </entry>
+                </rules>
+              </entry>
+            </wildfire-analysis>
+          </profiles>
+          <log-settings>
+            <profiles>
+              <entry name="lfp-default">
+                <match-list>
+                  <entry name="traffic"><log-type>traffic</log-type><send-to-panorama>yes</send-to-panorama></entry>
+                  <entry name="threat"><log-type>threat</log-type><send-syslog><member>siem</member></send-syslog></entry>
+                  <entry name="wildfire"><log-type>wildfire</log-type><send-syslog><member>siem</member></send-syslog></entry>
+                  <entry name="url"><log-type>url</log-type><send-syslog><member>siem</member></send-syslog></entry>
+                  <entry name="auth"><log-type>auth</log-type><send-syslog><member>siem</member></send-syslog></entry>
+                </match-list>
+              </entry>
+              <entry name="hollow-lfp">
+                <match-list>
+                  <entry name="threat-nowhere"><log-type>threat</log-type><send-to-panorama>no</send-to-panorama></entry>
+                </match-list>
+              </entry>
+            </profiles>
+          </log-settings>
           <rulebase>
             <security>
               <rules>
