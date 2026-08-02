@@ -10,6 +10,7 @@ package parse
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gitupcourt/open-pan-bpa/internal/model"
 	"github.com/gitupcourt/open-pan-bpa/internal/xmlnode"
@@ -47,6 +48,21 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 		for _, e := range shared.Entries("profile-group") {
 			cfg.ProfileGroups = append(cfg.ProfileGroups, parseProfileGroup(e, "shared"))
 		}
+	}
+
+	// A config with no vsys is not a firewall. Refuse loudly rather than
+	// producing a near-empty "assessment" that looks like a clean result.
+	if len(cfg.Vsys) == 0 {
+		markers := []string{}
+		for _, m := range []string{"device-group", "template", "template-stack", "log-collector"} {
+			if len(dev.Entries(m)) > 0 {
+				markers = append(markers, m)
+			}
+		}
+		if len(markers) > 0 {
+			return nil, fmt.Errorf("this is a Panorama/management-appliance configuration (found %s) — Panorama assessment is not supported yet; run against a firewall tech support file or config export", strings.Join(markers, ", "))
+		}
+		return nil, fmt.Errorf("no vsys found in configuration — unsupported document shape")
 	}
 
 	return cfg, nil
