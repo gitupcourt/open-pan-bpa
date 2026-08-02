@@ -1,0 +1,169 @@
+# URL Filtering profile check pack. Category groups are versioned data —
+# they drift with content updates; adjust via a custom pack when needed.
+pack: url-filtering
+version: 0.1.0
+checks:
+  - slug: uf-block-malicious
+    title: Known-malicious URL categories should be blocked
+    severity: critical
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_block_malicious
+    rationale: >-
+      Command-and-control, malware, phishing, ransomware, compromised and
+      scanning categories are outright hostile; anything short of block is
+      accepting the first stage of an intrusion.
+    remediation: Block all known-malicious categories.
+    pan_bpa_ids: [43]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-block-liability
+    title: Liability-risk URL categories should be blocked
+    severity: warning
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_block_liability
+    rationale: >-
+      These categories carry legal and HR exposure rather than malware;
+      blocking is the reference posture, with deliberate exceptions where
+      business need is documented.
+    remediation: Block the liability-risk category group.
+    pan_bpa_ids: [340]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-block-risky
+    title: Potentially malicious URL categories should be blocked
+    severity: warning
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_block_risky
+    rationale: >-
+      Dynamic DNS, encrypted DNS, parked, unknown, newly registered domains
+      and their kin are where attacks stage before categorization catches up.
+    remediation: Block the potentially malicious category group.
+    pan_bpa_ids: [341]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-block-genai
+    title: Generative AI categories should be blocked (site and credential)
+    severity: warning
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_block_genai
+    rationale: >-
+      Unsanctioned generative AI tools are a data-exfiltration channel; the
+      posture is category-level block with sanctioned tools re-allowed
+      explicitly.
+    remediation: Block the AI category group for site access and credential submission.
+    pan_bpa_ids: [357]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-cred-malicious
+    title: Credential submission should be blocked for known-malicious categories
+    severity: critical
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_cred_malicious
+    rationale: >-
+      A corporate credential typed into a phishing or C2 site is the breach;
+      credential blocking is the last line when the site itself was reachable.
+    remediation: Block credential submission for the known-malicious group.
+    pan_bpa_ids: [207]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-cred-liability
+    title: Credential submission should be blocked for liability-risk categories
+    severity: warning
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_cred_liability
+    rationale: Corporate credentials have no business being entered on these sites.
+    remediation: Block credential submission for the liability-risk group.
+    pan_bpa_ids: [344]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-cred-risky
+    title: Credential submission should be blocked for potentially malicious categories
+    severity: warning
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_cred_risky
+    rationale: >-
+      Categories that haven't earned trust (unknown, newly registered,
+      parked) are exactly where harvested-credential pages live.
+    remediation: Block credential submission for the potentially malicious group.
+    pan_bpa_ids: [345]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-log-container-only
+    title: Log Container Page Only should be disabled
+    severity: informational
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_log_container
+    rationale: >-
+      With container-only logging (the default), embedded-content requests
+      never appear in URL logs — precisely the requests investigations need.
+    remediation: Disable Log Container Page Only.
+    pan_bpa_ids: [44]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-cred-domain-filter
+    title: Credential detection should use the Domain Credential Filter
+    severity: informational
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_cred_mode
+    rationale: >-
+      The domain credential filter matches actual corporate credentials;
+      lesser modes miss or over-match, and disabled means no detection at all.
+    remediation: Set User Credential Detection to Use Domain Credential Filter.
+    pan_bpa_ids: [227]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-inline-ml
+    title: URL Filtering inline ML should block on every model
+    severity: warning
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_inline_ml
+    rationale: >-
+      Inline categorization catches phishing and JS-exploit pages in the
+      request path — but only actions set to block actually stop them.
+    remediation: Enable Inline Categorization and set every model action to block.
+    pan_bpa_ids: [273]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering
+
+  - slug: uf-category-logging
+    title: No URL category should use the allow action (unlogged)
+    severity: informational
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_category_logging
+    rationale: Allow generates no log; alert preserves visibility at zero user impact.
+    remediation: Use alert instead of allow for permitted categories.
+    pan_bpa_ids: [196]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices
+
+  - slug: uf-cred-logging
+    title: No credential-submission category should use the allow action
+    severity: informational
+    section: objects
+    feature: url_filtering_profile
+    evaluator: uf_cred_logging
+    rationale: Unlogged credential submissions are invisible credential reuse.
+    remediation: Use alert as the minimum credential-submission action.
+    pan_bpa_ids: [346]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-url-filtering/administration/configuring-url-filtering/url-filtering-best-practices

@@ -212,6 +212,39 @@
                 </ssl-protocol-settings>
               </entry>
             </decryption>
+            <url-filtering>
+              <entry name="strict-url">
+                <block>
+                  <member>command-and-control</member><member>compromised-website</member><member>grayware</member><member>malware</member><member>phishing</member><member>ransomware</member><member>scanning-activity</member>
+                  <member>abused-drugs</member><member>adult</member><member>copyright-infringement</member><member>extremism</member><member>gambling</member><member>peer-to-peer</member><member>questionable</member><member>weapons</member>
+                  <member>dynamic-dns</member><member>encrypted-dns</member><member>hacking</member><member>insufficient-content</member><member>newly-registered-domain</member><member>not-resolved</member><member>parked</member><member>proxy-avoidance-and-anonymizers</member><member>unknown</member>
+                  <member>AI-code-assistant</member><member>AI-conversational-assistant</member><member>AI-data-and-workflow-optimizer</member><member>AI-meeting-assistant</member><member>AI-platform-service</member><member>AI-writing-assistant</member>
+                </block>
+                <alert><member>business-and-economy</member></alert>
+                <credential-enforcement>
+                  <mode><domain-credentials/></mode>
+                  <block>
+                    <member>command-and-control</member><member>compromised-website</member><member>grayware</member><member>malware</member><member>phishing</member><member>ransomware</member><member>scanning-activity</member>
+                    <member>abused-drugs</member><member>adult</member><member>copyright-infringement</member><member>extremism</member><member>gambling</member><member>peer-to-peer</member><member>questionable</member><member>weapons</member>
+                    <member>dynamic-dns</member><member>encrypted-dns</member><member>hacking</member><member>insufficient-content</member><member>newly-registered-domain</member><member>not-resolved</member><member>parked</member><member>proxy-avoidance-and-anonymizers</member><member>unknown</member>
+                    <member>AI-code-assistant</member><member>AI-conversational-assistant</member><member>AI-data-and-workflow-optimizer</member><member>AI-meeting-assistant</member><member>AI-platform-service</member><member>AI-writing-assistant</member>
+                  </block>
+                </credential-enforcement>
+                <log-container-page-only>no</log-container-page-only>
+                <cloud-inline-cat>yes</cloud-inline-cat>
+                <mlav-engine-urlbased-enabled>
+                  <entry name="Phishing Detection"><mlav-policy-action>block</mlav-policy-action></entry>
+                </mlav-engine-urlbased-enabled>
+              </entry>
+              <entry name="loose-url">
+                <block><member>malware</member></block>
+                <allow><member>web-advertisements</member></allow>
+                <credential-enforcement>
+                  <mode><ip-user/></mode>
+                  <allow><member>shopping</member></allow>
+                </credential-enforcement>
+              </entry>
+            </url-filtering>
             <file-blocking>
               <entry name="reference-fb">
                 <rules>

@@ -23,6 +23,7 @@ type Config struct {
 	SpywareProfiles       []SpywareProfile
 	VulnerabilityProfiles []VulnerabilityProfile
 	DecryptionProfiles    []DecryptionProfile
+	URLFilteringProfiles  []URLFilteringProfile
 
 	// LicenseInfoAvailable is true when the input carried license state
 	// (tech support files do; bare config XML exports cannot).
@@ -180,6 +181,22 @@ type DecryptionProfile struct {
 	NoProxy          map[string]string // ssl-no-proxy
 	SSHProxy         map[string]string // ssh-proxy
 	ProtocolSettings map[string]string // ssl-protocol-settings
+}
+
+// URLFilteringProfile is a normalized URL Filtering profile.
+type URLFilteringProfile struct {
+	Name             string
+	Location         string
+	Block            []string
+	Alert            []string
+	Allow            []string
+	Continue         []string
+	CredBlock        []string
+	CredAllow        []string
+	CredMode         string // disabled | ip-user | domain-credentials | group-mapping
+	LogContainerOnly bool
+	CloudInlineCat   bool
+	MlavEngines      map[string]string // url inline-ML model -> action
 }
 
 // License is one entry from the device's license inventory.
