@@ -19,6 +19,9 @@ bpa-report*.html
 dist/
 coverage.out
 
+# Local one-time maintenance scripts
+/scrub-history.ps1
+
 # Editor/OS noise
 .vscode/
 .idea/

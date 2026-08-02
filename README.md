@@ -29,6 +29,10 @@ bpa scan techsupport.tgz --out report/
 bpa scan running-config.xml --format json,html,csv
 ```
 
+See [USAGE.md](USAGE.md) for the full guide: getting binaries, generating
+input files on the firewall, output formats, verdict semantics, and custom
+check packs.
+
 ## Design
 
 - Checks are **declarative YAML packs** (embedded in the binary, overridable with
