@@ -1,0 +1,92 @@
+name: security
+
+# AppSec CI security gates for open-pan-bpa.
+#
+# Phase-0 posture (private repo, pre-scaffold): the one gate that matters
+# before any code or fixtures land is SECRET / DATA-LEAK detection. This
+# project's primary risk is a config or tech-support file getting committed
+# (see SECURITY.md + .gitleaks.toml). gitleaks is BLOCKING from the first PR.
+#
+# Deferred to later increments (each needs Go code and/or public visibility):
+#   - govulncheck + gosec (Go SAST / vuln)   -> with the Phase-0 scaffold PR
+#   - Dependabot gomod                        -> activates when go.mod lands
+#   - CodeQL (Go)                             -> at go-public (code scanning on a
+#                                                private repo needs GitHub Advanced
+#                                                Security)
+#   - Blocking required-check ruleset         -> at go-public (branch protection /
+#                                                rulesets need a paid plan on
+#                                                private repos)
+# Until the required-check ruleset is available this gate runs and reports on
+# every PR but is enforced by PR discipline, matching homelab/appsec today.
+#
+# gitleaks runs from its official container image directly (not the
+# license-gated Action), so it works on this private user-account repo with no
+# GITLEAKS_LICENSE. Scanner image is pulled at :latest deliberately — for a
+# secret scanner you want the freshest ruleset each run; the scanned target
+# (our code) is pinned by the checkout SHA.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Cancel superseded PR runs to save minutes, but never cancel a push-to-main
+  # run (we want the record).
+  group: security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ===================================================================
+  # SECRETS / DATA-LEAK — gitleaks. BLOCKING. This is the job to add to
+  # the required-check ruleset once the repo is public.
+  #
+  # Scan scope is commit-range-bound, not full-history:
+  #   - on a PR:        scan base..head (the PR's own commits)
+  #   - on push to main: scan the newly-pushed range (HEAD only on first push)
+  # So a secret/config a change *introduces* fails the gate; full-history
+  # sweeps are an out-of-band AppSec responsibility (driver + manual gitleaks).
+  # ===================================================================
+  secrets:
+    name: gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history so the --log-opts range resolves
+
+      - name: gitleaks (commit-range scoped)
+        env:
+          # Pass event fields via env — never interpolate ${{ }} directly into
+          # the script body — so a crafted ref/SHA can't break out of the shell
+          # (standard Actions script-injection hygiene).
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # Single-arg helper — the log-opts string is passed quoted, so no
+          # word-splitting (shellcheck-clean).
+          scan() {
+            docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:latest \
+              git /repo --config /repo/.gitleaks.toml --redact --no-banner --verbose \
+              --log-opts="$1"
+          }
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            echo "Scanning PR commit range: ${PR_BASE}..${PR_HEAD}"
+            scan "${PR_BASE}..${PR_HEAD}"
+          elif echo "${PUSH_BEFORE}" | grep -qE '^0+$'; then
+            echo "No before-SHA (first push) — scanning HEAD commit only"
+            scan "-1 ${PUSH_HEAD}"
+          else
+            echo "Scanning pushed range: ${PUSH_BEFORE}..${PUSH_HEAD}"
+            scan "${PUSH_BEFORE}..${PUSH_HEAD}"
+          fi
