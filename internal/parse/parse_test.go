@@ -2,6 +2,7 @@ package parse
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/gitupcourt/open-pan-bpa/internal/xmlnode"
@@ -19,6 +20,24 @@ func loadMini(t *testing.T) *xmlnode.Node {
 		t.Fatal(err)
 	}
 	return root
+}
+
+func TestPanoramaConfigRefused(t *testing.T) {
+	xml := `<config version="11.1.0"><devices><entry name="localhost.localdomain">
+		<device-group><entry name="dg1"/></device-group>
+		<template><entry name="t1"/></template>
+	</entry></devices></config>`
+	root, err := xmlnode.Parse(strings.NewReader(xml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Build(root)
+	if err == nil {
+		t.Fatal("Panorama config should be refused")
+	}
+	if !strings.Contains(err.Error(), "Panorama") {
+		t.Errorf("error should name Panorama, got: %v", err)
+	}
 }
 
 func TestBuildMiniConfig(t *testing.T) {

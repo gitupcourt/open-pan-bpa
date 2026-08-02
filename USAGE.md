@@ -30,6 +30,11 @@ directly on a management jump box.
 
 ## 2. Get an input file
 
+`bpa` currently assesses **firewall** configurations (single- or multi-vsys).
+Panorama / management-appliance configurations are detected and refused with a
+clear error; full Panorama support (device groups, templates) is on the
+roadmap.
+
 `bpa` accepts either of the following, produced on the firewall:
 
 **A tech support file (`.tgz`)** — Device → Support → Generate Tech Support
