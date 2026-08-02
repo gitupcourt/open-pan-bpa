@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>open-pan-bpa — {{.Rep.Hostname}}</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1c2733;--mut:#68778a;--line:#e3e8ee;
+  --crit:#c0392b;--high:#d35400;--warn:#b7950b;--info:#2471a3;--pass:#1e8449;--note:#7d3c98}
+@media (prefers-color-scheme: dark){:root{--bg:#12181f;--card:#1b232d;--ink:#e6edf3;--mut:#8b98a7;--line:#2c3743}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);padding:24px}
+h1{font-size:20px}h2{font-size:15px;margin:24px 0 8px}
+.sub{color:var(--mut);font-size:13px;margin-bottom:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;text-align:center}
+.card .n{font-size:26px;font-weight:700}.card .l{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut)}
+.wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;padding:8px 12px;border-bottom:2px solid var(--line);font-size:12px;color:var(--mut);white-space:nowrap}
+td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.sev,.verdict{font-weight:600;text-transform:capitalize;white-space:nowrap}
+.sev-critical{color:var(--crit)}.sev-high{color:var(--high)}.sev-warning{color:var(--warn)}.sev-informational{color:var(--info)}
+.v-pass{color:var(--pass)}.v-fail{color:var(--crit)}.v-note{color:var(--note)}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.foot{margin-top:28px;color:var(--mut);font-size:12px}
+</style>
+</head>
+<body>
+<h1>Best Practice Assessment — {{.Rep.Hostname}}</h1>
+<div class="sub">open-pan-bpa {{.Rep.ToolVersion}} · schema {{.Rep.SchemaVersion}} · generated {{.Rep.GeneratedAt.Format "2006-01-02 15:04 UTC"}} · input: {{.Rep.InputPath}} ({{.Rep.InputKind}})<br>
+<strong>Not an official Palo Alto Networks product.</strong> Results are advisory.</div>
+
+<div class="cards">
+  <div class="card"><div class="n">{{.Rep.Summary.Checks}}</div><div class="l">Checks</div></div>
+  <div class="card"><div class="n">{{.Rep.Summary.Objects}}</div><div class="l">Objects</div></div>
+  <div class="card"><div class="n v-pass">{{.Rep.Summary.Pass}}</div><div class="l">Pass</div></div>
+  <div class="card"><div class="n v-fail">{{.Rep.Summary.Fail}}</div><div class="l">Fail</div></div>
+  <div class="card"><div class="n v-note">{{.Rep.Summary.Notes}}</div><div class="l">Notes</div></div>
+</div>
+
+<h2>Results by check</h2>
+<div class="wrap"><table>
+<tr><th>Check</th><th>Severity</th><th>Pass</th><th>Fail</th><th>Notes</th></tr>
+{{range .BySlug}}<tr>
+  <td>{{.Title}}<div class="mono">{{.Slug}}</div></td>
+  <td class="sev sev-{{.Severity}}">{{.Severity}}</td>
+  <td class="v-pass">{{.Pass}}</td><td class="v-fail">{{.Fail}}</td><td class="v-note">{{.Notes}}</td>
+</tr>{{end}}
+</table></div>
+
+<h2>Failed findings ({{len .Failures}})</h2>
+<div class="wrap"><table>
+<tr><th>Severity</th><th>Check</th><th>Object</th><th>Location</th><th>Detail</th></tr>
+{{range .Failures}}<tr>
+  <td class="sev sev-{{.Severity}}">{{.Severity}}</td>
+  <td>{{.Title}}</td>
+  <td class="mono">{{.Object.Feature}}{{if .Object.Name}} / {{.Object.Name}}{{end}}</td>
+  <td>{{.Object.Location}}</td>
+  <td>{{.Message}}</td>
+</tr>{{end}}
+</table></div>
+
+{{if .Notes}}<h2>Notes ({{len .Notes}})</h2>
+<div class="wrap"><table>
+<tr><th>Check</th><th>Object</th><th>Location</th><th>Detail</th></tr>
+{{range .Notes}}<tr>
+  <td>{{.Title}}</td>
+  <td class="mono">{{.Object.Feature}}{{if .Object.Name}} / {{.Object.Name}}{{end}}</td>
+  <td>{{.Object.Location}}</td>
+  <td>{{.Message}}</td>
+</tr>{{end}}
+</table></div>{{end}}
+
+<div class="foot">open-pan-bpa is an independent community tool, not affiliated with or endorsed by Palo Alto Networks, Inc. This report never leaves this machine.</div>
+</body>
+</html>
