@@ -177,6 +177,10 @@ func TestConformanceFixtures(t *testing.T) {
 			if err != nil {
 				t.Skipf("parse refused: %v", err)
 			}
+			if ts := src.Transcript(); ts != "" {
+				cfg.LicenseInfoAvailable = true
+				cfg.Licenses = parse.ParseLicenses(ts)
+			}
 			rep, err := engine.Run(cfg, loaded, checks.Registry(), "conformance")
 			if err != nil {
 				t.Fatal(err)

@@ -90,6 +90,10 @@ func runScan(args []string) error {
 	if err != nil {
 		return err
 	}
+	if ts := src.Transcript(); ts != "" {
+		cfg.LicenseInfoAvailable = true
+		cfg.Licenses = parse.ParseLicenses(ts)
+	}
 
 	var packFS fs.FS = packs.FS
 	if *packsDir != "" {

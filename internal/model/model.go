@@ -4,7 +4,10 @@
 // raw XML shapes.
 package model
 
-// Config is the normalized firewall configuration.
+import "time"
+
+// Config is the normalized firewall configuration, plus device state parsed
+// from a tech support file's CLI transcript when available.
 type Config struct {
 	Hostname      string
 	Vsys          []string
@@ -12,6 +15,20 @@ type Config struct {
 	Zones         []Zone
 	ProfileGroups []ProfileGroup
 	Device        Device
+
+	// LicenseInfoAvailable is true when the input carried license state
+	// (tech support files do; bare config XML exports cannot).
+	LicenseInfoAvailable bool
+	Licenses             []License
+}
+
+// License is one entry from the device's license inventory.
+type License struct {
+	Feature     string
+	Description string
+	Expired     bool
+	Never       bool      // perpetual: no expiry date
+	Expires     time.Time // zero when Never
 }
 
 // SecurityRule is one security policy rule, normalized.
