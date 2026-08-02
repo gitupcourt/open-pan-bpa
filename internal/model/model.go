@@ -284,7 +284,9 @@ type ProfileGroup struct {
 }
 
 // Device holds device-wide (deviceconfig / mgt-config) settings the checks
-// need.
+// need. The flag maps are flat element-name -> text projections of their
+// respective deviceconfig subtrees; absent keys mean the element is absent
+// and per-flag content defaults apply in the checks.
 type Device struct {
 	NTPPrimary   string
 	NTPSecondary string
@@ -296,4 +298,24 @@ type Device struct {
 	PasswordMinNumeric        int
 	PasswordMinSpecial        int
 	PasswordBlockUsername     bool
+
+	SysFlags     map[string]string // deviceconfig/system leaves (login-banner, authentication-profile, server-verification, fqdn-refresh-time, ...)
+	PermittedIPs []string          // deviceconfig/system/permitted-ip entries
+
+	AdminCount            int // mgt-config/users entries
+	AdminsWithAuthProfile int // admins whose account references an authentication profile
+
+	TelemetryFlags map[string]string // deviceconfig/system/device-telemetry leaves
+	SecureConnCert bool              // deviceconfig/system/secure-conn-client has a certificate configured
+
+	MgmtFlags      map[string]string // deviceconfig/setting/management leaves
+	AdminLockout   map[string]string // setting/management/admin-lockout leaves
+	APIKeyLifetime string            // setting/management/api/key/lifetime
+
+	CTDFlags     map[string]string // deviceconfig/setting/ctd leaves
+	SessionFlags map[string]string // deviceconfig/setting/session leaves
+	ConfigFlags  map[string]string // deviceconfig/setting/config leaves
+	TCPFlags     map[string]string // deviceconfig/setting/tcp leaves
+	AppFlags     map[string]string // deviceconfig/setting/application leaves
+	WildfireSet  map[string]string // deviceconfig/setting/wildfire leaves
 }
