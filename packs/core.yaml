@@ -61,7 +61,6 @@ checks:
       Without session-end logging there is no record of traffic the rule
       matched, blinding investigation and tuning.
     remediation: Enable Log at Session End on the rule.
-    pan_bpa_ids: [6]
     references:
       - https://docs.paloaltonetworks.com/best-practices/security-policy-best-practices
 
