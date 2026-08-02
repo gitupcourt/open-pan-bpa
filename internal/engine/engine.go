@@ -23,7 +23,7 @@ const (
 	NotApplicable Verdict = "n/a"  // check out of scope for this object
 )
 
-// Severity mirrors the vendor taxonomy.
+// Severity ranks how much a failed check matters.
 type Severity string
 
 const (

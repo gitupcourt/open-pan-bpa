@@ -1,7 +1,7 @@
 // Package model defines the normalized configuration model the check engine
 // evaluates. It is a deliberate projection of the PAN-OS XML schema: flat,
-// explicit, and stable across PAN-OS versions, in the spirit of the vendor
-// engine's XML→JSON normalization.
+// explicit, and stable across PAN-OS versions, so check logic never touches
+// raw XML shapes.
 package model
 
 // Config is the normalized firewall configuration.

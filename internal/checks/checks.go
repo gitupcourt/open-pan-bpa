@@ -1,6 +1,5 @@
 // Package checks implements the seed evaluators referenced by the core check
-// pack. Verdict semantics (applied engine-wide, learned from field experience
-// with the vendor BPA):
+// pack. Verdict semantics, applied engine-wide so findings stay actionable:
 //
 //   - Allow-only checks return NotApplicable for non-allow rules instead of
 //     evaluating them.
@@ -133,9 +132,9 @@ func ruleLogForwarding(cfg *model.Config, _ engine.CheckMeta) []engine.Finding {
 	})
 }
 
-// ruleProfilesAttached is the flagship check the vendor BPA lacks: allow rules
-// must carry the core threat profiles, and a profile-group attachment only
-// passes if the group actually resolves to them.
+// ruleProfilesAttached verifies allow rules actually carry the core threat
+// profiles. A profile-group attachment only passes if the group resolves to
+// them — a group without AV/AS/VP is still an uninspected allow rule.
 func ruleProfilesAttached(cfg *model.Config, _ engine.CheckMeta) []engine.Finding {
 	groups := map[string]model.ProfileGroup{}
 	for _, g := range cfg.ProfileGroups {
@@ -163,7 +162,7 @@ func ruleProfilesAttached(cfg *model.Config, _ engine.CheckMeta) []engine.Findin
 
 		if r.ProfileGroup == "" && len(effective) == 0 {
 			f.Verdict = engine.Fail
-			f.Message = "Allow rule has no security profiles or profile group attached; traffic passes with zero threat inspection."
+			f.Message = "Allow rule has no security profiles or profile group attached, so matching traffic receives no threat inspection at all."
 			f.FailedFields = map[string]any{"profile_setting": nil}
 			return f
 		}
@@ -185,7 +184,7 @@ func ruleProfilesAttached(cfg *model.Config, _ engine.CheckMeta) []engine.Findin
 			f.Verdict = engine.Fail
 			f.FailedFields = map[string]any{"missing_core_profiles": missing, "attached": keys(effective)}
 			if r.ProfileGroup != "" {
-				f.Message = fmt.Sprintf("Attached profile group %q lacks core threat profiles: %s. Fix the group, not the rules.", r.ProfileGroup, strings.Join(missing, ", "))
+				f.Message = fmt.Sprintf("Attached profile group %q lacks core threat profiles: %s. Remediate the group itself and every rule using it is fixed at once.", r.ProfileGroup, strings.Join(missing, ", "))
 				f.FailedFields["group"] = r.ProfileGroup
 			} else {
 				f.Message = "Allow rule is missing core threat profiles: " + strings.Join(missing, ", ") + "."

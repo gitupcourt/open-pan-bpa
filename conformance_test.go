@@ -61,8 +61,8 @@ func TestConformanceFixtures(t *testing.T) {
 			t.Logf("%s (%s, entry %s): %d rules, %d findings (%d fail)",
 				cfg.Hostname, src.Kind, src.EntryName(),
 				len(cfg.SecurityRules), len(rep.Findings), rep.Summary.Fail)
-			// Phase 1 will add per-check verdict comparison against the
-			// vendor reports for these same devices.
+			// Phase 1 will pin expected-verdict baselines for these
+			// fixtures so regressions in check logic are caught here.
 		})
 	}
 }

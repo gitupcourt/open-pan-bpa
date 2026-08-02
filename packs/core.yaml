@@ -15,8 +15,8 @@ checks:
     feature: security_rule
     evaluator: rule_description
     rationale: >-
-      Descriptions record intent, which makes auditing and maintaining the
-      rulebase possible after staff turnover.
+      A rule without a stated purpose cannot be safely audited, tuned, or
+      retired later; the description is where that intent lives.
     remediation: Populate the Description field on each rule.
     pan_bpa_ids: [3]
     references:
