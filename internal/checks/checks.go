@@ -32,6 +32,9 @@ func Registry() engine.Registry {
 	for name, ev := range deviceRegistry() {
 		reg[name] = ev
 	}
+	for name, ev := range updatesRegistry() {
+		reg[name] = ev
+	}
 	for name, ev := range coreRegistry() {
 		reg[name] = ev
 	}

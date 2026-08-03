@@ -1,0 +1,214 @@
+# Dynamic updates, log settings, server profiles, certificates, roles.
+pack: updates-logging
+version: 0.1.0
+checks:
+  - slug: du-antivirus-hourly
+    title: Antivirus content should download-and-install hourly
+    severity: warning
+    section: device
+    feature: dynamic_updates
+    evaluator: du_antivirus
+    rationale: Hourly AV updates keep the signature gap to minutes, not days.
+    remediation: Schedule antivirus updates hourly, download-and-install, no threshold.
+    pan_bpa_ids: [188]
+    references: [https://docs.paloaltonetworks.com/pan-os/11-1/pan-os-upgrade/software-and-content-updates/best-practices-for-app-and-threat-content-updates]
+
+  - slug: du-apps-threats
+    title: Apps and Threats content should install at least daily (threshold <= 48h)
+    severity: warning
+    section: device
+    feature: dynamic_updates
+    evaluator: du_apps_threats
+    rationale: Stale threat content means known-signature attacks pass unrecognized.
+    remediation: Schedule Apps and Threats download-and-install daily or faster.
+    pan_bpa_ids: [189]
+    references: [https://docs.paloaltonetworks.com/pan-os/11-1/pan-os-upgrade/software-and-content-updates/best-practices-for-app-and-threat-content-updates]
+
+  - slug: du-wildfire-realtime
+    title: WildFire content should update in real time
+    severity: warning
+    section: device
+    feature: dynamic_updates
+    evaluator: du_wildfire
+    rationale: Real-time delivery is the point of WildFire's minutes-after-discovery signatures.
+    remediation: Set the WildFire schedule to real-time.
+    pan_bpa_ids: [190]
+    references: [https://docs.paloaltonetworks.com/advanced-wildfire]
+
+  - slug: du-sync-peer-antivirus
+    title: HA pairs should sync antivirus content to peer
+    severity: informational
+    section: device
+    feature: dynamic_updates
+    evaluator: du_sync_peer_av
+    rationale: Divergent content between HA peers changes enforcement on failover.
+    remediation: Enable Sync To Peer on the antivirus schedule.
+    pan_bpa_ids: [191]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: du-sync-peer-threats
+    title: HA pairs should sync Apps and Threats content to peer
+    severity: informational
+    section: device
+    feature: dynamic_updates
+    evaluator: du_sync_peer_at
+    rationale: Same failover-consistency argument as antivirus.
+    remediation: Enable Sync To Peer on the Apps and Threats schedule.
+    pan_bpa_ids: [192]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: du-gp-datafile
+    title: GlobalProtect data file content should install hourly
+    severity: informational
+    section: device
+    feature: dynamic_updates
+    evaluator: du_gp_datafile
+    rationale: HIP and clientless content lags without a schedule.
+    remediation: Schedule GlobalProtect data file updates hourly.
+    pan_bpa_ids: [194]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: du-gp-clientless
+    title: GlobalProtect clientless VPN content should install hourly
+    severity: informational
+    section: device
+    feature: dynamic_updates
+    evaluator: du_gp_clientless
+    rationale: Clientless app definitions drift without a schedule.
+    remediation: Schedule GlobalProtect clientless VPN updates hourly.
+    pan_bpa_ids: [195]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: ls-system-low-forwarded
+    title: Informational/low system logs should be forwarded
+    severity: informational
+    section: device
+    feature: log_settings_system
+    evaluator: ls_system_low
+    rationale: Low-severity system logs carry the early signals of developing problems.
+    remediation: Forward all system log severities off-box.
+    pan_bpa_ids: [177]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: ls-system-high-forwarded
+    title: Medium/high/critical system logs should be forwarded
+    severity: warning
+    section: device
+    feature: log_settings_system
+    evaluator: ls_system_high
+    rationale: HA failovers, hardware faults, and attacks announce themselves here.
+    remediation: Forward all system log severities off-box.
+    pan_bpa_ids: [178]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: ls-config-forwarded
+    title: Configuration logs should be forwarded
+    severity: warning
+    section: device
+    feature: log_settings_config
+    evaluator: ls_config
+    rationale: Config-change audit trails must outlive on-box rotation.
+    remediation: Forward configuration logs off-box.
+    pan_bpa_ids: [182]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: sprof-syslog-ssl
+    title: Syslog server profiles should use SSL transport
+    severity: warning
+    section: device
+    feature: syslog_server_profile
+    evaluator: sprof_syslog_ssl
+    rationale: Cleartext syslog is readable and forgeable in transit.
+    remediation: Set syslog transport to SSL.
+    pan_bpa_ids: [185]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: sprof-tacplus-chap
+    title: TACACS+ profiles should authenticate with CHAP
+    severity: informational
+    section: device
+    feature: tacplus_server_profile
+    evaluator: sprof_tacplus_chap
+    rationale: PAP sends the password in reversible form; CHAP does not.
+    remediation: Set the TACACS+ authentication protocol to CHAP.
+    pan_bpa_ids: [234]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: sprof-ldap-ssl
+    title: LDAP profiles should require SSL/TLS
+    severity: warning
+    section: device
+    feature: ldap_server_profile
+    evaluator: sprof_ldap_ssl
+    rationale: Unencrypted binds expose directory credentials.
+    remediation: Enable Require SSL/TLS Secured Connection.
+    pan_bpa_ids: [186]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: sprof-ldap-verify-cert
+    title: LDAP profiles should verify the server certificate
+    severity: warning
+    section: device
+    feature: ldap_server_profile
+    evaluator: sprof_ldap_verify
+    rationale: TLS without verification authenticates you to anyone.
+    remediation: Enable Verify Server Certificate for SSL sessions.
+    pan_bpa_ids: [187]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: sprof-ldap-redundancy
+    title: LDAP profiles should list two or more servers
+    severity: informational
+    section: device
+    feature: ldap_server_profile
+    evaluator: sprof_ldap_redund
+    rationale: One directory server makes authentication a single point of failure.
+    remediation: Add a second LDAP server to the profile.
+    pan_bpa_ids: [199]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: cert-trust-untrust-split
+    title: Forward Trust and Forward Untrust must be different certificates
+    severity: critical
+    section: device
+    feature: certificate
+    evaluator: cert_trust_split
+    rationale: >-
+      If the untrust CA chains to something clients trust, invalid upstream
+      certificates are laundered into trusted ones.
+    remediation: Use a separate, untrusted certificate for Forward Untrust.
+    pan_bpa_ids: [267]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices]
+
+  - slug: tls-profile-versions
+    title: SSL/TLS service profiles should require TLS 1.2 minimum
+    severity: warning
+    section: device
+    feature: ssl_tls_service_profile
+    evaluator: tls_profile_vers
+    rationale: Management and portal services deserve the same protocol floor as decryption.
+    remediation: Set Min Version TLSv1.2, Max Version max.
+    pan_bpa_ids: [63]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: role-custom-defined
+    title: Custom admin roles should define actual permissions
+    severity: informational
+    section: device
+    feature: admin_role
+    evaluator: role_custom
+    rationale: An empty role grants nothing and audits as clutter.
+    remediation: Define device/vsys permissions in the role or remove it.
+    pan_bpa_ids: [154]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/administrative-access-best-practices]
+
+  - slug: authseq-secondary
+    title: Authentication sequences should include a fallback profile
+    severity: informational
+    section: device
+    feature: authentication_sequence
+    evaluator: authseq_secondary
+    rationale: A one-profile sequence fails exactly when the sequence was supposed to help.
+    remediation: Add a secondary authentication profile to the sequence.
+    pan_bpa_ids: [159]
+    references: [https://docs.paloaltonetworks.com/best-practices]

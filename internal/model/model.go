@@ -25,6 +25,16 @@ type Config struct {
 	DecryptionProfiles    []DecryptionProfile
 	URLFilteringProfiles  []URLFilteringProfile
 
+	UpdateSchedules  map[string]UpdateSchedule // content type -> schedule
+	HAEnabled        bool
+	ServerProfiles   []ServerProfile
+	Certificates     []Certificate
+	SSLTLSProfiles   []SSLTLSProfile
+	AdminRoles       []AdminRole
+	AuthSequences    []AuthSequence
+	SystemLogMatches []SimpleLogMatch
+	ConfigLogMatches []SimpleLogMatch
+
 	// LicenseInfoAvailable is true when the input carried license state
 	// (tech support files do; bare config XML exports cannot).
 	LicenseInfoAvailable bool
@@ -197,6 +207,59 @@ type URLFilteringProfile struct {
 	LogContainerOnly bool
 	CloudInlineCat   bool
 	MlavEngines      map[string]string // url inline-ML model -> action
+}
+
+// UpdateSchedule is one content type's dynamic-update schedule.
+type UpdateSchedule struct {
+	Frequency  string // real-time | every-min | every-30-mins | hourly | daily | weekly | ...
+	Action     string
+	Threshold  int    // minutes/hours as configured; 0 = unset
+	SyncToPeer string // "" when absent
+}
+
+// ServerProfile is a normalized authentication/logging server profile.
+type ServerProfile struct {
+	Name        string
+	Location    string
+	Kind        string // ldap | syslog | tacplus
+	ServerCount int
+	Transports  []string          // syslog: per-server transport
+	Flags       map[string]string // ldap: ssl, verify-server-certificate; tacplus: protocol
+}
+
+// Certificate is a certificate object with the flags the checks need.
+type Certificate struct {
+	Name           string
+	Location       string
+	ForwardTrust   bool
+	ForwardUntrust bool
+}
+
+// SSLTLSProfile is an SSL/TLS service profile.
+type SSLTLSProfile struct {
+	Name       string
+	Location   string
+	MinVersion string
+	MaxVersion string
+}
+
+// AdminRole is a custom admin role definition.
+type AdminRole struct {
+	Name          string
+	HasDeviceRole bool
+	HasVsysRole   bool
+}
+
+// AuthSequence is an authentication sequence.
+type AuthSequence struct {
+	Name         string
+	ProfileCount int
+}
+
+// SimpleLogMatch is a shared log-settings match-list entry (system/config).
+type SimpleLogMatch struct {
+	Filter  string
+	HasDest bool
 }
 
 // License is one entry from the device's license inventory.

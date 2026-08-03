@@ -13,6 +13,67 @@
     </password-complexity>
   </mgt-config>
   <shared>
+    <server-profile>
+      <ldap>
+        <entry name="good-ldap">
+          <server><entry name="a"><address>ldap1.test</address></entry><entry name="b"><address>ldap2.test</address></entry></server>
+          <ssl>yes</ssl>
+          <verify-server-certificate>yes</verify-server-certificate>
+        </entry>
+        <entry name="bad-ldap">
+          <server><entry name="only"><address>ldap.test</address></entry></server>
+          <ssl>no</ssl>
+        </entry>
+      </ldap>
+      <syslog>
+        <entry name="ssl-syslog">
+          <server><entry name="s1"><transport>SSL</transport></entry></server>
+        </entry>
+        <entry name="udp-syslog">
+          <server><entry name="s1"><transport>UDP</transport></entry></server>
+        </entry>
+      </syslog>
+      <tacplus>
+        <entry name="tac-chap"><protocol><CHAP/></protocol><server><entry name="t"/></server></entry>
+      </tacplus>
+    </server-profile>
+    <certificate>
+      <entry name="dual-role-ca">
+        <forward-trust-ca>yes</forward-trust-ca>
+        <forward-untrust-ca>yes</forward-untrust-ca>
+      </entry>
+      <entry name="trust-only-ca">
+        <forward-trust-ca>yes</forward-trust-ca>
+      </entry>
+    </certificate>
+    <ssl-tls-service-profile>
+      <entry name="mgmt-tls">
+        <protocol-settings><min-version>tls1-2</min-version><max-version>max</max-version></protocol-settings>
+      </entry>
+      <entry name="old-tls">
+        <protocol-settings><min-version>tls1-0</min-version><max-version>tls1-2</max-version></protocol-settings>
+      </entry>
+    </ssl-tls-service-profile>
+    <admin-role>
+      <entry name="empty-role"/>
+      <entry name="real-role"><role><device><webui/></device></role></entry>
+    </admin-role>
+    <authentication-sequence>
+      <entry name="solo-seq"><authentication-profiles><member>only-one</member></authentication-profiles></entry>
+      <entry name="dual-seq"><authentication-profiles><member>first</member><member>backup</member></authentication-profiles></entry>
+    </authentication-sequence>
+    <log-settings>
+      <system>
+        <match-list>
+          <entry name="all-system"><filter>All Logs</filter><send-syslog><member>siem</member></send-syslog></entry>
+        </match-list>
+      </system>
+      <config>
+        <match-list>
+          <entry name="all-config"><filter>All Logs</filter><send-syslog><member>siem</member></send-syslog></entry>
+        </match-list>
+      </config>
+    </log-settings>
     <profile-group>
       <entry name="strict-group">
         <virus><member>strict-av</member></virus>
@@ -35,6 +96,11 @@
               <ntp-server-address>192.0.2.10</ntp-server-address>
             </primary-ntp-server>
           </ntp-servers>
+          <update-schedule>
+            <anti-virus><recurring><hourly><at>4</at><action>download-and-install</action></hourly></recurring></anti-virus>
+            <threats><recurring><daily><at>03:00</at><action>download-and-install</action></daily></recurring></threats>
+            <wildfire><recurring><real-time/></recurring></wildfire>
+          </update-schedule>
         </system>
       </deviceconfig>
       <vsys>
