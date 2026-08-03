@@ -27,6 +27,12 @@ type Config struct {
 
 	UpdateSchedules  map[string]UpdateSchedule // content type -> schedule
 	HAEnabled        bool
+	HA               HAConfig
+	ZoneProtections  []ZoneProtectionProfile
+	InterfaceMgmt    []InterfaceMgmtProfile
+	GPGateways       []GPGateway
+	IKEProfiles      []CryptoProfile
+	IPSecProfiles    []CryptoProfile
 	ServerProfiles   []ServerProfile
 	Certificates     []Certificate
 	SSLTLSProfiles   []SSLTLSProfile
@@ -260,6 +266,63 @@ type AuthSequence struct {
 type SimpleLogMatch struct {
 	Filter  string
 	HasDest bool
+}
+
+// HAConfig is the normalized high-availability configuration.
+type HAConfig struct {
+	ConfigSyncDisabled   bool // group/configuration-synchronization/enabled == no
+	PeerIPBackup         string
+	HA1Port              string
+	HA1BackupPort        string
+	HA1Encryption        string // "" when absent
+	PassiveLinkState     string // active-passive mode
+	ActiveActive         bool
+	HA3Configured        bool
+	SessionOwnerFirstPkt bool
+	TimersMode           string // recommended | advanced | ... ; "" when absent
+	HeartbeatBackup      string
+	StateSyncDisabled    bool
+	HA2KeepAlive         string // "" when absent
+	LinkMonDisabled      bool
+	LinkGroups           int
+	PathMonDisabled      bool
+	PathGroups           int
+}
+
+// ZoneProtectionProfile is a normalized zone protection profile.
+type ZoneProtectionProfile struct {
+	Name        string
+	Location    string
+	ScanEntries int               // reconnaissance protection rows
+	PacketFlags map[string]string // packet-based attack protection leaves
+}
+
+// InterfaceMgmtProfile is an interface management profile.
+type InterfaceMgmtProfile struct {
+	Name     string
+	Location string
+	HTTP     string
+	Telnet   string
+}
+
+// GPGateway is a normalized GlobalProtect gateway.
+type GPGateway struct {
+	Name              string
+	Location          string
+	TLSProfile        string
+	HasClientAuth     bool // client-auth with an authentication profile
+	HasCertProfile    bool
+	TunnelConfigs     int
+	TunnelsFullAccess int // tunnel configs whose access-route includes 0.0.0.0/0
+	HasSatellite      bool
+	SatelliteReplay   string // anti-replay value, "" when absent
+}
+
+// CryptoProfile is an IKE or IPsec crypto profile with its AKE rounds.
+type CryptoProfile struct {
+	Name     string
+	Location string
+	AKE      []string // advanced key-exchange round values (DH groups or KEMs)
 }
 
 // License is one entry from the device's license inventory.

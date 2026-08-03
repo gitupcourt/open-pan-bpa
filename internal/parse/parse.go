@@ -29,6 +29,7 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 	parseDevice(dev, &cfg.Device)
 	parseMgtConfig(root.First("mgt-config"), &cfg.Device)
 	parseDeviceObjects(root, dev, cfg)
+	parseNetworkObjects(dev, cfg)
 
 	for _, vsys := range dev.Entries("vsys") {
 		name := vsys.Attr("name")
@@ -132,7 +133,9 @@ func parseZone(e *xmlnode.Node, location string) model.Zone {
 		z.ExternalInterfaces = nw.Members("external")
 		z.ZoneProtectionProfile = nw.ChildText("zone-protection-profile")
 		z.LogSetting = nw.ChildText("log-setting")
-		z.EnablePacketBufferProt = yes(nw.ChildText("enable-packet-buffer-protection"))
+		// Packet buffer protection defaults to enabled per zone; only an
+		// explicit "no" disables it.
+		z.EnablePacketBufferProt = nw.ChildText("enable-packet-buffer-protection") != "no"
 	}
 	if acl := e.First("user-acl"); acl != nil {
 		z.UserACLInclude = acl.Members("include-list")
