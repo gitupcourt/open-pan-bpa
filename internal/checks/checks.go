@@ -38,6 +38,9 @@ func Registry() engine.Registry {
 	for name, ev := range networkRegistry() {
 		reg[name] = ev
 	}
+	for name, ev := range rulebaseRegistry() {
+		reg[name] = ev
+	}
 	for name, ev := range coreRegistry() {
 		reg[name] = ev
 	}

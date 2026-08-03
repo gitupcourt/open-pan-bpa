@@ -36,6 +36,11 @@ var allowedDeviations = map[string]string{
 	// devices with identical normalized config (model-dependent?); we always
 	// fail disabled keep-alive.
 	"ha-ha2-keepalive/fail": "reference inconsistent on identical config",
+	// Reference fails the default-rule logging checks on every device,
+	// including ones whose default rules are overridden with log-end=yes;
+	// we report the honest verdict.
+	"rb-interzone-default-logging/pass": "reference always-fails regardless of config",
+	"rb-intrazone-default-logging/pass": "reference always-fails regardless of config",
 	// Reference hard-fails findings on disabled rules; we downgrade to notes.
 	"rule-description/note":      "disabled rule downgraded to note",
 	"rule-service-specific/note": "disabled rule downgraded to note",

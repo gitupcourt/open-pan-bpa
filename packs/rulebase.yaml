@@ -1,0 +1,166 @@
+# Rulebase-wide security policy checks. EDL name lists are versioned data —
+# the predefined list grows with content releases; extend via a custom pack.
+pack: rulebase
+version: 0.1.0
+checks:
+  - slug: rb-interzone-default-logging
+    title: The interzone-default deny rule should log at session end
+    severity: informational
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_default_rule_logging
+    params: { rule_name: interzone-default }
+    rationale: >-
+      Traffic reaching interzone-default matched no explicit rule; without
+      logging you never learn what your policy is missing.
+    remediation: Override interzone-default and enable Log at Session End.
+    pan_bpa_ids: [12]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-intrazone-default-logging
+    title: The intrazone-default allow rule should log at session end
+    severity: informational
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_default_rule_logging
+    params: { rule_name: intrazone-default }
+    rationale: Same-zone traffic is allowed by default and otherwise invisible.
+    remediation: Override intrazone-default and enable Log at Session End.
+    pan_bpa_ids: [13]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-block-malicious-inbound
+    title: Inbound traffic from known malicious IPs should be blocked
+    severity: warning
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_edl_block
+    params: { direction: inbound, edl_names: [panw-known-ip-list] }
+    rationale: The vendor maintains this list for you; enforcing it is free coverage.
+    remediation: Add a deny rule with the known-malicious EDL as source.
+    pan_bpa_ids: [261]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-block-malicious-outbound
+    title: Outbound traffic to known malicious IPs should be blocked
+    severity: warning
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_edl_block
+    params: { direction: outbound, edl_names: [panw-known-ip-list] }
+    rationale: Outbound blocking catches beaconing from already-compromised hosts.
+    remediation: Add a deny rule with the known-malicious EDL as destination.
+    pan_bpa_ids: [262]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-block-highrisk-inbound
+    title: Inbound traffic from high-risk IPs should be blocked
+    severity: critical
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_edl_block
+    params: { direction: inbound, edl_names: [panw-highrisk-ip-list] }
+    rationale: High-risk space is where scanning and exploitation originate.
+    remediation: Add a deny rule with the high-risk EDL as source.
+    pan_bpa_ids: [263]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-block-highrisk-outbound
+    title: Outbound traffic to high-risk IPs should be blocked
+    severity: critical
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_edl_block
+    params: { direction: outbound, edl_names: [panw-highrisk-ip-list] }
+    rationale: Blocks exfiltration and C2 toward high-risk space.
+    remediation: Add a deny rule with the high-risk EDL as destination.
+    pan_bpa_ids: [264]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-block-quic
+    title: QUIC should be blocked when decryption is in use
+    severity: critical
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_quic_block
+    rationale: >-
+      Browsers prefer QUIC and it is not decryptable by the forward proxy;
+      leaving it open routes exactly the traffic you meant to inspect around
+      inspection.
+    remediation: Add a deny rule for the quic application (and UDP 80/443).
+    pan_bpa_ids: [241]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices]
+
+  - slug: rb-userid-source-zones
+    title: User-based rules need User-ID enabled on their source zones
+    severity: critical
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_userid_source_zones
+    rationale: >-
+      A rule matching specific users from a zone without User-ID cannot
+      resolve those users — the rule quietly never matches as intended.
+    remediation: Enable User Identification on the referenced source zones.
+    pan_bpa_ids: [16]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-1/user-id-best-practices]
+
+  - slug: rb-adopt-url-filtering
+    title: At least one rule should use a URL Filtering profile
+    severity: informational
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_profile_adoption
+    params: { profile_kind: url-filtering }
+    rationale: A licensed subscription enforced by no rule protects nothing.
+    remediation: Attach the profile to the rules that carry web traffic.
+    pan_bpa_ids: [366]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-adopt-vulnerability
+    title: At least one rule should use a Vulnerability Protection profile
+    severity: informational
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_profile_adoption
+    params: { profile_kind: vulnerability }
+    rationale: Exploit protection unattached to any rule is inert.
+    remediation: Attach the profile to allow rules.
+    pan_bpa_ids: [367]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-adopt-spyware
+    title: At least one rule should use an Anti-Spyware profile
+    severity: informational
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_profile_adoption
+    params: { profile_kind: spyware }
+    rationale: C2 detection unattached to any rule is inert.
+    remediation: Attach the profile to allow rules.
+    pan_bpa_ids: [368]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: rb-adopt-wildfire
+    title: At least one rule should use a WildFire Analysis profile
+    severity: informational
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_profile_adoption
+    params: { profile_kind: wildfire-analysis }
+    rationale: Sandboxing unattached to any rule never sees a file.
+    remediation: Attach the profile to allow rules.
+    pan_bpa_ids: [370]
+    references: [https://docs.paloaltonetworks.com/best-practices]
+
+  - slug: dec-rule-profile
+    title: Decryption rules should have a decryption profile attached
+    severity: warning
+    section: policies
+    feature: decryption_rulebase
+    evaluator: rb_decrypt_rule_profile
+    rationale: >-
+      Without a profile the rule decrypts but enforces no protocol version,
+      cipher, or certificate-failure policy on what it decrypts.
+    remediation: Attach a decryption profile to every decrypt rule.
+    pan_bpa_ids: [350]
+    references: [https://docs.paloaltonetworks.com/best-practices/10-2/decryption-best-practices]

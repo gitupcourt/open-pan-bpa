@@ -527,6 +527,25 @@
                 </entry>
               </rules>
             </security>
+            <default-security-rules>
+              <rules>
+                <entry name="intrazone-default"><action>allow</action><log-end>yes</log-end></entry>
+                <entry name="interzone-default"><action>deny</action><log-end>no</log-end></entry>
+              </rules>
+            </default-security-rules>
+            <decryption>
+              <rules>
+                <entry name="decrypt-web">
+                  <action>decrypt</action>
+                  <type><ssl-forward-proxy/></type>
+                  <profile>tight-dp</profile>
+                </entry>
+                <entry name="decrypt-naked">
+                  <action>decrypt</action>
+                  <type><ssl-forward-proxy/></type>
+                </entry>
+              </rules>
+            </decryption>
           </rulebase>
         </entry>
       </vsys>

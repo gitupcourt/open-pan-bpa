@@ -43,6 +43,21 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 		for _, e := range vsys.All("rulebase", "security", "rules", "entry") {
 			cfg.SecurityRules = append(cfg.SecurityRules, parseSecurityRule(e, name))
 		}
+		for _, e := range vsys.All("rulebase", "default-security-rules", "rules", "entry") {
+			cfg.DefaultRules = append(cfg.DefaultRules, parseSecurityRule(e, name))
+		}
+		for _, e := range vsys.All("rulebase", "decryption", "rules", "entry") {
+			r := model.DecryptionRule{
+				Name: e.Attr("name"), Location: name,
+				Disabled: yes(e.ChildText("disabled")),
+				Action:   e.ChildText("action"),
+				Profile:  e.ChildText("profile"),
+			}
+			if t := e.First("type"); t != nil && len(t.Children) > 0 {
+				r.Type = t.Children[0].Name
+			}
+			cfg.DecryptionRules = append(cfg.DecryptionRules, r)
+		}
 		parseProfiles(vsys, name, cfg)
 	}
 
