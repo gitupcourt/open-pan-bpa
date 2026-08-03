@@ -28,6 +28,7 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 	cfg.Hostname = dev.ChildText("deviceconfig", "system", "hostname")
 	parseDevice(dev, &cfg.Device)
 	parseMgtConfig(root.First("mgt-config"), &cfg.Device)
+	parseDeviceObjects(root, dev, cfg)
 
 	for _, vsys := range dev.Entries("vsys") {
 		name := vsys.Attr("name")
