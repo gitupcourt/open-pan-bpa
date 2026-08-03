@@ -9,12 +9,14 @@ import "time"
 // Config is the normalized firewall configuration, plus device state parsed
 // from a tech support file's CLI transcript when available.
 type Config struct {
-	Hostname      string
-	Vsys          []string
-	SecurityRules []SecurityRule
-	Zones         []Zone
-	ProfileGroups []ProfileGroup
-	Device        Device
+	Hostname        string
+	Vsys            []string
+	SecurityRules   []SecurityRule
+	DefaultRules    []SecurityRule // intrazone-default / interzone-default overrides
+	DecryptionRules []DecryptionRule
+	Zones           []Zone
+	ProfileGroups   []ProfileGroup
+	Device          Device
 
 	AntivirusProfiles     []AntivirusProfile
 	FileBlockingProfiles  []FileBlockingProfile
@@ -323,6 +325,16 @@ type CryptoProfile struct {
 	Name     string
 	Location string
 	AKE      []string // advanced key-exchange round values (DH groups or KEMs)
+}
+
+// DecryptionRule is one decryption policy rule.
+type DecryptionRule struct {
+	Name     string
+	Location string
+	Disabled bool
+	Action   string
+	Type     string // ssl-forward-proxy | ssl-inbound-inspection | ssh-proxy
+	Profile  string
 }
 
 // License is one entry from the device's license inventory.

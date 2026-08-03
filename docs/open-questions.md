@@ -34,6 +34,30 @@ Resolved entries move to the bottom with the verdict.
   keep-alive config (`enabled: no`) received opposite verdicts from the
   reference engine (PA-850s pass, PA-460/VM/PA-220 fail) — possibly
   model-metadata-dependent. We always fail disabled keep-alive; allowlisted.
+- **Default-rule logging (12/13)**: the reference fails these on **all six**
+  fixtures, including devices whose `default-security-rules` are overridden
+  with `log-end: yes` (and a log-forwarding profile). No configuration
+  observed makes them pass. We report the honest verdict — pass when the
+  rule is overridden with session-end logging; allowlisted.
+
+## Implemented but pass-path unverified (all fixtures fail)
+
+These checks fail on every fixture, so only the fail branch is evidence-backed.
+The logic is derived from the check titles and public docs; the pass path
+would be confirmed by any device that actually satisfies them.
+
+- **QUIC block (241)** — verified NOT gated on decryption being configured
+  (devices with no decryption rules still fail). Pass path = an enabled deny
+  rule with application `quic`.
+- **New App-ID staging rule (249)**, **WildFire real-time signature hold
+  (347)**, **GenAI deny rule (348)** — not implemented; see Parked below.
+- **EDL blocks for the newer threat lists (398–409)**: C2 infrastructure,
+  malware-hardcoded IPs, commercial VPN, proxy, scanner/brute-force, exposed
+  vulnerable services. The four older lists (261–264) ARE grounded by passing
+  instances (`panw-known-ip-list`, `panw-highrisk-ip-list`); the newer twelve
+  have no passing instance anywhere and their predefined EDL object names are
+  unknown. **Not implemented** rather than guessed — add a lab rule using the
+  newer predefined EDLs to ground the names.
 
 ## Parked (not implemented — element names or semantics unground)
 
@@ -42,14 +66,19 @@ Resolved entries move to the bottom with the verdict.
   it's explicitly disabled, or a pointer to the element name.
 - **377** PQC (ML-KEM) for management TLS profiles: 12.1-only; needs an
   SSL/TLS service profile with PQC settings present in a fixture.
+- **249** Rule allowing new App-IDs from content updates: requires resolving
+  application-filter membership (the `new-app-id` filter), which needs
+  predefined content data we don't ship yet.
+- **347** WildFire real-time signature lookup / hold-for-verdict: the
+  governing element does not appear in any fixture config; likely a device
+  setting introduced in a version none of our fixtures set explicitly.
+- **348** GenAI deny rule below the sanctioned-AI allow rule: requires
+  application-filter resolution (`Gen AI Apps`) plus rule-order reasoning.
+  Both are worth building once predefined content data lands.
+- **398–409** Newer predefined EDL block rules (see above).
 - **92 (partial)** External auth for administrators: account-level profiles
   confirmed; whether an *unused* device-wide auth setting alone passes is
   unverified.
-- **164/165/231** User-ID (client probing, timeout, certificate profile):
-  every fixture passes all three with minimal/no User-ID config, so the fail
-  conditions are unobservable. Needs a lab config with WMI client probing
-  enabled and/or a User-ID collector configured without a certificate
-  profile.
 
 ## Resolved by reference evidence
 
