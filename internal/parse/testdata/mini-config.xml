@@ -89,6 +89,22 @@
   <devices>
     <entry name="localhost.localdomain">
       <deviceconfig>
+        <high-availability>
+          <enabled>yes</enabled>
+          <interface>
+            <ha1><port>ethernet1/7</port></ha1>
+          </interface>
+          <group>
+            <peer-ip>192.0.2.99</peer-ip>
+            <mode><active-passive><passive-link-state>shutdown</passive-link-state></active-passive></mode>
+            <election-option><heartbeat-backup>no</heartbeat-backup></election-option>
+            <state-synchronization><ha2-keep-alive><enabled>no</enabled></ha2-keep-alive></state-synchronization>
+            <monitoring>
+              <link-monitoring><enabled>yes</enabled></link-monitoring>
+              <path-monitoring><enabled>no</enabled></path-monitoring>
+            </monitoring>
+          </group>
+        </high-availability>
         <system>
           <hostname>TESTFW-01</hostname>
           <ntp-servers>
@@ -103,6 +119,52 @@
           </update-schedule>
         </system>
       </deviceconfig>
+      <network>
+        <profiles>
+          <zone-protection-profile>
+            <entry name="zpp-standard">
+              <scan><entry name="8001"><action><block-ip/></action></entry></scan>
+              <discard-malformed-option>yes</discard-malformed-option>
+              <discard-overlapping-tcp-segment-mismatch>yes</discard-overlapping-tcp-segment-mismatch>
+              <remove-tcp-timestamp>yes</remove-tcp-timestamp>
+            </entry>
+            <entry name="zpp-empty"/>
+          </zone-protection-profile>
+          <interface-management-profile>
+            <entry name="secure-mgmt"><https>yes</https><ssh>yes</ssh></entry>
+            <entry name="legacy-mgmt"><http>yes</http><telnet>yes</telnet></entry>
+          </interface-management-profile>
+        </profiles>
+        <ike>
+          <crypto-profiles>
+            <ike-crypto-profiles>
+              <entry name="modern-ike"><ake><ake-1>mlkem768</ake-1></ake></entry>
+              <entry name="classic-ike"><ake><ake-1>group14</ake-1></ake></entry>
+            </ike-crypto-profiles>
+            <ipsec-crypto-profiles>
+              <entry name="default-ipsec"/>
+              <entry name="pq-ipsec"><ake><ake-1>mlkem1024</ake-1></ake></entry>
+            </ipsec-crypto-profiles>
+          </crypto-profiles>
+        </ike>
+        <global-protect>
+          <global-protect-gateway>
+            <entry name="lab-gw-N">
+              <ssl-tls-service-profile>mgmt-tls</ssl-tls-service-profile>
+              <client-auth><entry name="auth"><authentication-profile>seq-auth</authentication-profile></entry></client-auth>
+              <remote-user-tunnel-configs>
+                <entry name="full"><split-tunneling><access-route><member>0.0.0.0/0</member></access-route></split-tunneling></entry>
+              </remote-user-tunnel-configs>
+            </entry>
+            <entry name="split-gw-N">
+              <remote-user-tunnel-configs>
+                <entry name="partial"><split-tunneling><access-route><member>10.0.0.0/8</member></access-route></split-tunneling></entry>
+              </remote-user-tunnel-configs>
+              <satellite-config><client-certificate><local/></client-certificate></satellite-config>
+            </entry>
+          </global-protect-gateway>
+        </global-protect>
+      </network>
       <vsys>
         <entry name="vsys1">
           <zone>

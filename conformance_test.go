@@ -32,6 +32,10 @@ var allowedDeviations = map[string]string{
 	// Reference fails zones with no interfaces; we downgrade to a note
 	// because an out-of-service zone is advisory, not an exposure.
 	"zone-protection-attached/note": "empty zone downgraded to note",
+	// Reference engine verdicts for HA2 keep-alive are inconsistent across
+	// devices with identical normalized config (model-dependent?); we always
+	// fail disabled keep-alive.
+	"ha-ha2-keepalive/fail": "reference inconsistent on identical config",
 	// Reference hard-fails findings on disabled rules; we downgrade to notes.
 	"rule-description/note":      "disabled rule downgraded to note",
 	"rule-service-specific/note": "disabled rule downgraded to note",

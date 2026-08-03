@@ -23,6 +23,18 @@ Resolved entries move to the bottom with the verdict.
 | 9 | `ls-system-*` / `ls-config` (177/178/182) | A destination-bearing match with filter "All Logs" (or matching severity words) covers; no failing instance seen | Remove system/config log forwarding on a lab box |
 | 10 | `wf-forward-everything` (47) | Needs a rule with app=any, file-type=any, direction=both | Restrict a WildFire profile to upload-only; re-run reference |
 
+| 11 | `zpp-packet-attack` (87) | Element spellings for the three packet-based protections are guessed (multiple candidates accepted); absent = fail matches all fixtures | Enable malformed-option discard, overlapping-TCP-segment-mismatch discard, and TCP timestamp stripping in a lab Zone Protection profile → grounds the exact XML names |
+| 12 | `gpgw-client-auth` (77) | Fails only when neither certificate profile nor auth profile exists; no failing reference instance seen | Create a lab GP gateway with no client auth |
+| 13 | `ha-aa-*` (147/148) | Active/Active branch entirely unverified (all fixtures are A/P) | If an A/A lab pair is ever available; low priority |
+| 14 | `crypto` KEM asymmetry (358/359/376) | IKE profiles without AKE rounds pass; IPsec profiles without AKE fail (defaults are DH). Inferred from all-pass/all-fail split | Add a KEM AKE round to a lab IPsec profile → confirms the pass path |
+
+## Reference-engine inconsistencies (documented deviations, not questions)
+
+- **HA2 keep-alive (145)**: two devices with byte-identical normalized
+  keep-alive config (`enabled: no`) received opposite verdicts from the
+  reference engine (PA-850s pass, PA-460/VM/PA-220 fail) — possibly
+  model-metadata-dependent. We always fail disabled keep-alive; allowlisted.
+
 ## Parked (not implemented — element names or semantics unground)
 
 - **98** Buffered log forwarding (Panorama-buffered): could not ground the XML
@@ -33,6 +45,11 @@ Resolved entries move to the bottom with the verdict.
 - **92 (partial)** External auth for administrators: account-level profiles
   confirmed; whether an *unused* device-wide auth setting alone passes is
   unverified.
+- **164/165/231** User-ID (client probing, timeout, certificate profile):
+  every fixture passes all three with minimal/no User-ID config, so the fail
+  conditions are unobservable. Needs a lab config with WMI client probing
+  enabled and/or a User-ID collector configured without a certificate
+  profile.
 
 ## Resolved by reference evidence
 
