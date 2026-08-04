@@ -47,6 +47,9 @@ func rbAIDEDLBlock(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 		}
 	}
 
+	// License-gated: fleet-wide evaluation is appropriate here (the license
+	// and the note/fail distinction are device-level concerns, and per-DG
+	// granularity for an unowned subscription would be noise).
 	used := false
 	for _, r := range cfg.SecurityRules {
 		if r.Disabled || !isDeny(r.Action) {
@@ -83,29 +86,76 @@ func rbObject(feature string) engine.ObjectRef {
 	return engine.ObjectRef{Section: "policies", Feature: feature}
 }
 
+// policyScope is one rulebase evaluation scope: the whole firewall, or one
+// Panorama device group (shared rules included, since they apply everywhere).
+type policyScope struct {
+	Location     string
+	Rules        []model.SecurityRule
+	DefaultRules []model.SecurityRule
+}
+
+// policyScopes returns the scopes rulebase-wide checks evaluate over. On a
+// fleet, pooling every device group into one verdict would let a single
+// group's rule "pass" the entire fleet — each group gets its own verdict.
+func policyScopes(cfg *model.Config) []policyScope {
+	if cfg.Panorama == nil {
+		return []policyScope{{Rules: cfg.SecurityRules, DefaultRules: cfg.DefaultRules}}
+	}
+	var shared, sharedDefaults []model.SecurityRule
+	for _, r := range cfg.SecurityRules {
+		if r.Location == "shared" {
+			shared = append(shared, r)
+		}
+	}
+	for _, r := range cfg.DefaultRules {
+		if r.Location == "shared" {
+			sharedDefaults = append(sharedDefaults, r)
+		}
+	}
+	var out []policyScope
+	for _, dg := range cfg.Panorama.DeviceGroups {
+		s := policyScope{Location: dg.Name}
+		s.Rules = append(s.Rules, shared...)
+		s.Rules = append(s.Rules, dg.PreRules...)
+		s.Rules = append(s.Rules, dg.PostRules...)
+		s.DefaultRules = append(s.DefaultRules, sharedDefaults...)
+		s.DefaultRules = append(s.DefaultRules, dg.DefaultRules...)
+		out = append(out, s)
+	}
+	return out
+}
+
+func rbScopeObject(feature, location string) engine.ObjectRef {
+	return engine.ObjectRef{Section: "policies", Feature: feature, Location: location}
+}
+
 // rbDefaultRuleLogging: the named default rule must be overridden with
 // session-end logging. Param rule_name selects intrazone/interzone.
 func rbDefaultRuleLogging(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	want, _ := meta.Params["rule_name"].(string)
-	f := engine.Finding{Object: rbObject(meta.Feature), Verdict: engine.Pass}
-	found := false
-	for _, r := range cfg.DefaultRules {
-		if r.Name != want {
-			continue
+	var out []engine.Finding
+	for _, scope := range policyScopes(cfg) {
+		f := engine.Finding{Object: rbScopeObject(meta.Feature, scope.Location), Verdict: engine.Pass}
+		found := false
+		for _, r := range scope.DefaultRules {
+			if r.Name != want {
+				continue
+			}
+			found = true
+			if !r.LogEnd {
+				f.Verdict = engine.Fail
+				f.Message = fmt.Sprintf("The %s rule does not log at session end; the traffic it silently handles is the traffic no explicit rule matched.", want)
+				f.FailedFields = map[string]any{"log-end": "no"}
+			}
 		}
-		found = true
-		if !r.LogEnd {
+		if !found {
 			f.Verdict = engine.Fail
-			f.Message = fmt.Sprintf("The %s rule does not log at session end; the traffic it silently handles is the traffic no explicit rule matched.", want)
-			f.FailedFields = map[string]any{"log-end": "no"}
+			f.Message = fmt.Sprintf("The %s rule is not overridden, so it keeps the factory default of no logging.", want)
+			f.FailedFields = map[string]any{want: "not overridden"}
 		}
+		out = append(out, f)
 	}
-	if !found {
-		f.Verdict = engine.Fail
-		f.Message = fmt.Sprintf("The %s rule is not overridden, so it keeps the factory default of no logging.", want)
-		f.FailedFields = map[string]any{want: "not overridden"}
-	}
-	return []engine.Finding{f}
+	return out
 }
 
 // rbEDLBlock: a deny/drop rule must reference the named external dynamic
@@ -114,61 +164,68 @@ func rbDefaultRuleLogging(cfg *model.Config, meta engine.CheckMeta) []engine.Fin
 func rbEDLBlock(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	names, _ := meta.Params["edl_names"].([]any)
 	direction, _ := meta.Params["direction"].(string)
-	f := engine.Finding{Object: rbObject(meta.Feature), Verdict: engine.Fail}
-
 	var want []string
 	for _, n := range names {
 		if s, ok := n.(string); ok {
 			want = append(want, s)
 		}
 	}
-	for _, r := range cfg.SecurityRules {
-		if r.Disabled || !isDeny(r.Action) {
-			continue
+	var out []engine.Finding
+	for _, scope := range policyScopes(cfg) {
+		f := engine.Finding{Object: rbScopeObject(meta.Feature, scope.Location), Verdict: engine.Fail}
+		for _, r := range scope.Rules {
+			if r.Disabled || !isDeny(r.Action) {
+				continue
+			}
+			side := r.Source
+			if direction == "outbound" {
+				side = r.Destination
+			}
+			if containsAny(side, want) {
+				f.Verdict = engine.Pass
+				break
+			}
 		}
-		side := r.Source
-		if direction == "outbound" {
-			side = r.Destination
+		if f.Verdict == engine.Fail {
+			f.Message = fmt.Sprintf("No enabled deny rule blocks %s traffic using %s; these lists are maintained for you and cost nothing to enforce.",
+				direction, strings.Join(want, " or "))
+			f.FailedFields = map[string]any{"expected_edl": want, "direction": direction}
 		}
-		if containsAny(side, want) {
-			f.Verdict = engine.Pass
-			break
-		}
+		out = append(out, f)
 	}
-	if f.Verdict == engine.Fail {
-		f.Message = fmt.Sprintf("No enabled deny rule blocks %s traffic using %s; these lists are maintained for you and cost nothing to enforce.",
-			direction, strings.Join(want, " or "))
-		f.FailedFields = map[string]any{"expected_edl": want, "direction": direction}
-	}
-	return []engine.Finding{f}
+	return out
 }
 
 // rbQUICBlock: QUIC must be denied so TLS stays decryptable. Reference
 // evidence: the check is NOT gated on decryption actually being configured —
 // devices without any decryption rule still fail it.
 func rbQUICBlock(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
-	f := engine.Finding{Object: rbObject(meta.Feature), Verdict: engine.Pass}
-	blocked := false
-	for _, r := range cfg.SecurityRules {
-		if r.Disabled || !isDeny(r.Action) {
-			continue
-		}
-		for _, a := range r.Application {
-			if a == "quic" {
-				blocked = true
+	var out []engine.Finding
+	for _, scope := range policyScopes(cfg) {
+		f := engine.Finding{Object: rbScopeObject(meta.Feature, scope.Location), Verdict: engine.Pass}
+		blocked := false
+		for _, r := range scope.Rules {
+			if r.Disabled || !isDeny(r.Action) {
+				continue
+			}
+			for _, a := range r.Application {
+				if a == "quic" {
+					blocked = true
+					break
+				}
+			}
+			if blocked {
 				break
 			}
 		}
-		if blocked {
-			break
+		if !blocked {
+			f.Verdict = engine.Fail
+			f.Message = "QUIC is not blocked; browsers prefer it over TLS, and the forward proxy cannot decrypt it — inspection is bypassed by default."
+			f.FailedFields = map[string]any{"quic": "not denied"}
 		}
+		out = append(out, f)
 	}
-	if !blocked {
-		f.Verdict = engine.Fail
-		f.Message = "QUIC is not blocked; browsers prefer it over TLS, and the forward proxy cannot decrypt it — inspection is bypassed by default."
-		f.FailedFields = map[string]any{"quic": "not denied"}
-	}
-	return []engine.Finding{f}
+	return out
 }
 
 // rbUserIDSourceZones: rules that match specific source users need User-ID
@@ -209,25 +266,29 @@ func rbProfileAdoption(cfg *model.Config, meta engine.CheckMeta) []engine.Findin
 	for _, g := range cfg.ProfileGroups {
 		groups[g.Name] = g
 	}
-	f := engine.Finding{Object: rbObject(meta.Feature), Verdict: engine.Fail}
-	for _, r := range cfg.SecurityRules {
-		if r.Disabled {
-			continue
+	var out []engine.Finding
+	for _, scope := range policyScopes(cfg) {
+		f := engine.Finding{Object: rbScopeObject(meta.Feature, scope.Location), Verdict: engine.Fail}
+		for _, r := range scope.Rules {
+			if r.Disabled {
+				continue
+			}
+			if r.Profiles[kind] != "" {
+				f.Verdict = engine.Pass
+				break
+			}
+			if g, ok := groups[r.ProfileGroup]; ok && g.Profiles[kind] != "" {
+				f.Verdict = engine.Pass
+				break
+			}
 		}
-		if r.Profiles[kind] != "" {
-			f.Verdict = engine.Pass
-			break
+		if f.Verdict == engine.Fail {
+			f.Message = fmt.Sprintf("No enabled security rule uses a %s profile; the subscription is licensed but unenforced.", kind)
+			f.FailedFields = map[string]any{"profile_kind": kind}
 		}
-		if g, ok := groups[r.ProfileGroup]; ok && g.Profiles[kind] != "" {
-			f.Verdict = engine.Pass
-			break
-		}
+		out = append(out, f)
 	}
-	if f.Verdict == engine.Fail {
-		f.Message = fmt.Sprintf("No enabled security rule uses a %s profile; the subscription is licensed but unenforced.", kind)
-		f.FailedFields = map[string]any{"profile_kind": kind}
-	}
-	return []engine.Finding{f}
+	return out
 }
 
 func rbDecryptRuleProfile(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
