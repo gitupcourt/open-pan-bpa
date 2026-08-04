@@ -51,13 +51,15 @@ would be confirmed by any device that actually satisfies them.
   rule with application `quic`.
 - **New App-ID staging rule (249)**, **WildFire real-time signature hold
   (347)**, **GenAI deny rule (348)** — not implemented; see Parked below.
-- **EDL blocks for the newer threat lists (398–409)**: C2 infrastructure,
-  malware-hardcoded IPs, commercial VPN, proxy, scanner/brute-force, exposed
-  vulnerable services. The four older lists (261–264) ARE grounded by passing
-  instances (`panw-known-ip-list`, `panw-highrisk-ip-list`); the newer twelve
-  have no passing instance anywhere and their predefined EDL object names are
-  unknown. **Not implemented** rather than guessed — add a lab rule using the
-  newer predefined EDLs to ground the names.
+- **Advanced IP Defense EDL blocks (398–409)** — now IMPLEMENTED as
+  license-aware checks (operator-confirmed: these six lists belong to the
+  license-gated Advanced IP Defense subscription, which the reference engine
+  fails everyone on without saying so). Semantics: list enforced → pass;
+  license absent (or bare-XML input) → informational note; licensed but
+  unused → fail. Two things still need grounding from a licensed device's
+  TSF: the **exact predefined EDL object identifiers** (pack currently
+  carries display-name candidates like "Advanced IP Defense: C2") and the
+  **license Feature string** (we match case-insensitive "ip defense").
 
 ## Parked (not implemented — element names or semantics unground)
 

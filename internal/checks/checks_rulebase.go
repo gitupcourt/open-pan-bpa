@@ -17,7 +17,66 @@ func rulebaseRegistry() engine.Registry {
 		"rb_userid_source_zones":  rbUserIDSourceZones,
 		"rb_profile_adoption":     rbProfileAdoption,
 		"rb_decrypt_rule_profile": rbDecryptRuleProfile,
+		"rb_aid_edl_block":        rbAIDEDLBlock,
 	}
+}
+
+// rbAIDEDLBlock covers the Advanced IP Defense predefined EDLs. Unlike the
+// reference engine — which fails these on every device with no context —
+// this check is license-aware: without the Advanced IP Defense license the
+// EDLs cannot be used, so the finding is an informational note, not a fail.
+// With the license present, an unused list is a genuine gap.
+func rbAIDEDLBlock(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
+	direction, _ := meta.Params["direction"].(string)
+	label, _ := meta.Params["list_label"].(string)
+	var want []string
+	if names, ok := meta.Params["edl_names"].([]any); ok {
+		for _, n := range names {
+			if s, ok := n.(string); ok {
+				want = append(want, s)
+			}
+		}
+	}
+	f := engine.Finding{Object: rbObject(meta.Feature), Verdict: engine.Pass}
+
+	licensed := false
+	for _, lic := range cfg.Licenses {
+		if strings.Contains(strings.ToLower(lic.Feature), "ip defense") && !lic.Expired {
+			licensed = true
+			break
+		}
+	}
+
+	used := false
+	for _, r := range cfg.SecurityRules {
+		if r.Disabled || !isDeny(r.Action) {
+			continue
+		}
+		side := r.Source
+		if direction == "outbound" {
+			side = r.Destination
+		}
+		if containsAny(side, want) {
+			used = true
+			break
+		}
+	}
+
+	switch {
+	case used:
+		// Pass regardless of license visibility — the list is enforced.
+	case !cfg.LicenseInfoAvailable:
+		f.Verdict = engine.Note
+		f.Message = fmt.Sprintf("The %s Advanced IP Defense list is not enforced %s. This EDL requires the Advanced IP Defense license; license state is unavailable from a bare config export, so this is informational.", label, direction)
+	case !licensed:
+		f.Verdict = engine.Note
+		f.Message = fmt.Sprintf("The %s Advanced IP Defense list is not enforced %s — but the Advanced IP Defense license is not present, so the list is unavailable. Informational only; consider it when evaluating the subscription.", label, direction)
+	default:
+		f.Verdict = engine.Fail
+		f.Message = fmt.Sprintf("Advanced IP Defense is licensed but the %s list is not enforced %s; a paid, vendor-maintained blocklist is going unused.", label, direction)
+		f.FailedFields = map[string]any{"expected_edl": want, "direction": direction}
+	}
+	return []engine.Finding{f}
 }
 
 func rbObject(feature string) engine.ObjectRef {

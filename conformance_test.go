@@ -247,6 +247,12 @@ func compareVerdicts(t *testing.T, rep *engine.Report, ref refVerdicts, mappings
 				deviations++
 				continue
 			}
+			// Advanced IP Defense checks are license-aware: unlicensed
+			// devices get notes where the context-free reference fails.
+			if strings.HasPrefix(f.Slug, "rb-aid-") && f.Verdict == engine.Note {
+				deviations++
+				continue
+			}
 			mismatches++
 			if mismatches <= 10 {
 				t.Errorf("mismatch: %s on %s/%s — ours=%s reference_passed=%v",
