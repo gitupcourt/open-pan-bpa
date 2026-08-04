@@ -1,0 +1,99 @@
+# Advanced IP Defense predefined EDL checks (license-gated subscription).
+#
+# Unlike the reference engine, these are license-aware: without the Advanced
+# IP Defense license the lists cannot be used, so findings degrade to
+# informational notes instead of context-free fails.
+#
+# The predefined EDL object identifiers are not published; the names below are
+# candidates (display-name form) and are pack-configurable — a fixture from a
+# licensed device will ground the real identifiers (docs/open-questions.md).
+pack: advanced-ip-defense
+version: 0.1.0
+checks:
+  - &aid
+    slug: rb-aid-c2-inbound
+    title: "Advanced IP Defense: block inbound traffic from C2 infrastructure IPs"
+    severity: high
+    section: policies
+    feature: security_rulebase
+    evaluator: rb_aid_edl_block
+    params: { direction: inbound, list_label: "C2 infrastructure", edl_names: ["Advanced IP Defense: C2"] }
+    rationale: >-
+      IPs hosting command-and-control services or bound to C2 domains;
+      requires the Advanced IP Defense subscription.
+    remediation: Add a deny rule using the C2 list as source (license required).
+    pan_bpa_ids: [398]
+    references:
+      - https://docs.paloaltonetworks.com/advanced-ip-defense/getting-started/advanced-ip-defense-predefined-edls
+  - <<: *aid
+    slug: rb-aid-c2-outbound
+    title: "Advanced IP Defense: block outbound traffic to C2 infrastructure IPs"
+    params: { direction: outbound, list_label: "C2 infrastructure", edl_names: ["Advanced IP Defense: C2"] }
+    remediation: Add a deny rule using the C2 list as destination (license required).
+    pan_bpa_ids: [399]
+  - <<: *aid
+    slug: rb-aid-malware-inbound
+    title: "Advanced IP Defense: block inbound traffic from IPs hardcoded in malware"
+    params: { direction: inbound, list_label: "hardcoded-in-malware", edl_names: ["Advanced IP Defense: Hardcoded in Malware"] }
+    remediation: Add a deny rule using the hardcoded-in-malware list as source (license required).
+    pan_bpa_ids: [400]
+  - <<: *aid
+    slug: rb-aid-malware-outbound
+    title: "Advanced IP Defense: block outbound traffic to IPs hardcoded in malware"
+    params: { direction: outbound, list_label: "hardcoded-in-malware", edl_names: ["Advanced IP Defense: Hardcoded in Malware"] }
+    remediation: Add a deny rule using the hardcoded-in-malware list as destination (license required).
+    pan_bpa_ids: [401]
+  - <<: *aid
+    slug: rb-aid-vpn-inbound
+    title: "Advanced IP Defense: block inbound traffic from commercial VPN IPs"
+    severity: warning
+    params: { direction: inbound, list_label: "commercial VPN", edl_names: ["Advanced IP Defense: VPN"] }
+    remediation: Add a deny rule using the VPN list as source (license required).
+    pan_bpa_ids: [402]
+  - <<: *aid
+    slug: rb-aid-vpn-outbound
+    title: "Advanced IP Defense: block outbound traffic to commercial VPN IPs"
+    severity: warning
+    params: { direction: outbound, list_label: "commercial VPN", edl_names: ["Advanced IP Defense: VPN"] }
+    remediation: Add a deny rule using the VPN list as destination (license required).
+    pan_bpa_ids: [403]
+  - <<: *aid
+    slug: rb-aid-proxy-inbound
+    title: "Advanced IP Defense: block inbound traffic from proxy-service IPs"
+    severity: warning
+    params: { direction: inbound, list_label: "proxy services", edl_names: ["Advanced IP Defense: Proxies"] }
+    remediation: Add a deny rule using the proxies list as source (license required).
+    pan_bpa_ids: [404]
+  - <<: *aid
+    slug: rb-aid-proxy-outbound
+    title: "Advanced IP Defense: block outbound traffic to proxy-service IPs"
+    severity: warning
+    params: { direction: outbound, list_label: "proxy services", edl_names: ["Advanced IP Defense: Proxies"] }
+    remediation: Add a deny rule using the proxies list as destination (license required).
+    pan_bpa_ids: [405]
+  - <<: *aid
+    slug: rb-aid-scanner-inbound
+    title: "Advanced IP Defense: block inbound traffic from scanner/brute-force IPs"
+    params: { direction: inbound, list_label: "scanner and brute-force", edl_names: ["Advanced IP Defense: Scanner and Brute-force"] }
+    remediation: Add a deny rule using the scanner list as source (license required).
+    pan_bpa_ids: [406]
+  - <<: *aid
+    slug: rb-aid-scanner-outbound
+    title: "Advanced IP Defense: block outbound traffic to scanner/brute-force IPs"
+    params: { direction: outbound, list_label: "scanner and brute-force", edl_names: ["Advanced IP Defense: Scanner and Brute-force"] }
+    remediation: Add a deny rule using the scanner list as destination (license required).
+    pan_bpa_ids: [407]
+  - <<: *aid
+    slug: rb-aid-vulnsvc-inbound
+    title: "Advanced IP Defense: block inbound traffic from exposed vulnerable-service IPs"
+    severity: warning
+    params: { direction: inbound, list_label: "exposed vulnerable services", edl_names: ["Advanced IP Defense: Exposed Vulnerable Services"] }
+    remediation: Add a deny rule using the exposed-vulnerable-services list as source (license required).
+    pan_bpa_ids: [408]
+  - <<: *aid
+    slug: rb-aid-vulnsvc-outbound
+    title: "Advanced IP Defense: block outbound traffic to exposed vulnerable-service IPs"
+    severity: warning
+    params: { direction: outbound, list_label: "exposed vulnerable services", edl_names: ["Advanced IP Defense: Exposed Vulnerable Services"] }
+    remediation: Add a deny rule using the exposed-vulnerable-services list as destination (license required).
+    pan_bpa_ids: [409]
