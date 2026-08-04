@@ -43,6 +43,10 @@ type Config struct {
 	SystemLogMatches []SimpleLogMatch
 	ConfigLogMatches []SimpleLogMatch
 
+	// Panorama describes the management plane when the input is a Panorama
+	// configuration; nil for firewall inputs.
+	Panorama *PanoramaInfo
+
 	// LicenseInfoAvailable is true when the input carried license state
 	// (tech support files do; bare config XML exports cannot).
 	LicenseInfoAvailable bool
@@ -335,6 +339,47 @@ type DecryptionRule struct {
 	Action   string
 	Type     string // ssl-forward-proxy | ssl-inbound-inspection | ssh-proxy
 	Profile  string
+}
+
+// PanoramaInfo describes a Panorama management-plane configuration.
+type PanoramaInfo struct {
+	DeviceGroups   []DeviceGroup
+	Templates      []string
+	TemplateStacks []TemplateStack
+}
+
+// DeviceGroup is one device group and its place in the hierarchy. Parent is
+// "" for groups directly under shared.
+type DeviceGroup struct {
+	Name          string
+	Parent        string
+	Devices       []string
+	PreRules      []SecurityRule
+	PostRules     []SecurityRule
+	DefaultRules  []SecurityRule
+	PreDecryption []DecryptionRule
+}
+
+// TemplateStack is a template stack and its ordered member templates.
+type TemplateStack struct {
+	Name      string
+	Templates []string
+	Devices   []string
+}
+
+// Ancestors returns dg's parent chain (nearest first), ending at shared.
+func (p *PanoramaInfo) Ancestors(dg string) []string {
+	byName := map[string]DeviceGroup{}
+	for _, g := range p.DeviceGroups {
+		byName[g.Name] = g
+	}
+	var out []string
+	seen := map[string]bool{dg: true}
+	for cur := byName[dg].Parent; cur != "" && !seen[cur]; cur = byName[cur].Parent {
+		seen[cur] = true
+		out = append(out, cur)
+	}
+	return out
 }
 
 // License is one entry from the device's license inventory.
