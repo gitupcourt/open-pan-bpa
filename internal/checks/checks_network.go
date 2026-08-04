@@ -164,13 +164,14 @@ func zppRecon(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	return out
 }
 
-// zppPacketAttack: each protection is satisfied by any of its candidate
-// element spellings (exact names unground until a fixture configures them —
-// see docs/open-questions.md).
+// zppPacketAttack element names, grounded from PAN's IronSkillet golden
+// configuration and field config exports (set network profiles
+// zone-protection-profile ...): discard-malformed-option,
+// discard-overlapping-tcp-segment-mismatch, remove-tcp-timestamp.
 var zppPacketCandidates = map[string][]string{
-	"discard-malformed-option":         {"discard-malformed-option"},
-	"overlapping-tcp-segment-mismatch": {"discard-overlapping-tcp-segment-mismatch", "discard-tcp-overlapping-segment-mismatch"},
-	"remove-tcp-timestamp":             {"remove-tcp-timestamp", "strip-tcp-timestamp"},
+	"discard-malformed-option":                 {"discard-malformed-option"},
+	"discard-overlapping-tcp-segment-mismatch": {"discard-overlapping-tcp-segment-mismatch"},
+	"remove-tcp-timestamp":                     {"remove-tcp-timestamp"},
 }
 
 func zppPacketAttack(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
