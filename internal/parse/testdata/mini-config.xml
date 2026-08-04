@@ -183,6 +183,10 @@
               <network/>
             </entry>
           </zone>
+          <ssl-decrypt>
+            <forward-trust-certificate><rsa>trust-only-ca</rsa></forward-trust-certificate>
+            <forward-untrust-certificate><rsa>dual-role-ca</rsa></forward-untrust-certificate>
+          </ssl-decrypt>
           <profiles>
             <virus>
               <entry name="strict-av">
