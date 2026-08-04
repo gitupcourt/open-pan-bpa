@@ -175,6 +175,29 @@ func TestConformanceFixtures(t *testing.T) {
 		}
 	}
 
+	// Pre-pass: identify each TSF's hostname and pick the newest input per
+	// device (by file modification time) for verdict comparison.
+	newestByHost := map[string]string{}
+	newestMod := map[string]int64{}
+	for _, in := range inputs {
+		info, err := os.Stat(in)
+		if err != nil {
+			continue
+		}
+		root, _, err := ingest.Load(in)
+		if err != nil {
+			continue
+		}
+		cfg, err := parse.Build(root)
+		if err != nil {
+			continue
+		}
+		if mt := info.ModTime().Unix(); cfg.Hostname != "" && mt > newestMod[cfg.Hostname] {
+			newestMod[cfg.Hostname] = mt
+			newestByHost[cfg.Hostname] = in
+		}
+	}
+
 	for _, in := range inputs {
 		in := in
 		t.Run(filepath.Base(in), func(t *testing.T) {
@@ -204,6 +227,13 @@ func TestConformanceFixtures(t *testing.T) {
 			ref, ok := refs[cfg.Hostname]
 			if !ok {
 				t.Logf("no reference report for %s; verdict comparison skipped", cfg.Hostname)
+				return
+			}
+			// When multiple TSFs of the same device exist, only the newest
+			// one is compared — an older config against a newer reference
+			// report produces phantom mismatches.
+			if newest, ok := newestByHost[cfg.Hostname]; ok && newest != in {
+				t.Logf("stale TSF for %s (newer: %s); verdict comparison skipped", cfg.Hostname, filepath.Base(newest))
 				return
 			}
 			compareVerdicts(t, rep, ref, mappings)

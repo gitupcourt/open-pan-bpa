@@ -13,15 +13,32 @@ Resolved entries move to the bottom with the verdict.
 | # | Check(s) | What we assume today | Lab config that settles it |
 |---|---|---|---|
 | 1 | `uf-category-logging` / `uf-cred-logging` (196/346) | Any category (or credential category) set to **allow** fails | Set one URL category to Allow (e.g. web-advertisements) and one credential-submission category to Allow; re-run reference |
-| 2 | `av-inline-ml-models`, `as/vp-inline-cloud-engines` (272/334/360) | Every inline-ML model/engine must be a **blocking** action; alert-only fails | Set one AV Inline ML model to "enable (alert-only)" while leaving Inline Cloud Analysis on; re-run reference |
 | 3 | `uf-block-liability` / `uf-cred-liability` (340/344) | Liability list is exactly: abused-drugs, adult, copyright-infringement, extremism, gambling, peer-to-peer, questionable, weapons | Block 7 of the 8 (drop copyright-infringement); if reference still passes, its list is smaller |
 | 4 | `du-sync-peer-*` (191/192) | Non-HA devices pass trivially; HA devices need sync-to-peer **yes** | Confirmed direction on HA homegateways; the non-HA branch is unverified (PA-220 had no reference coverage here) |
-| 5 | `sprof-tacplus-chap` (234) | Protocol must be CHAP; no failing reference instance seen | Set a TACACS+ profile to PAP on a lab box (profile only, no server needed) |
-| 6 | `cert-trust-untrust-split` (267) | Fails only when one cert is BOTH forward-trust and forward-untrust CA | Configure the same CA for both roles in a lab decryption setup |
-| 7 | `authseq-secondary` (159) | A sequence with <2 profiles fails | Create a one-profile authentication sequence |
 | 8 | `dev-telemetry-sharing` (197) | Fails only when every telemetry setting is explicitly "no" | Disable all telemetry options; re-run reference |
-| 9 | `ls-system-*` / `ls-config` (177/178/182) | A destination-bearing match with filter "All Logs" (or matching severity words) covers; no failing instance seen | Remove system/config log forwarding on a lab box |
-| 10 | `wf-forward-everything` (47) | Needs a rule with app=any, file-type=any, direction=both | Restrict a WildFire profile to upload-only; re-run reference |
+| 11 | `zpp-packet-attack` (87) | Element spellings for the three packet-based protections are guessed (candidates accepted) | Enable the three protections in a lab Zone Protection profile → grounds exact XML names |
+| 12 | `gpgw-client-auth` (77) | Fails only when neither certificate profile nor auth profile exists | Create a lab GP gateway with no client auth |
+| 15 | `wf-forward-everything` (47) | Direction is NOT enforced (upload-only passes); download-only still unverified | Make a WildFire rule download-only; re-run reference |
+| 16 | AID EDLs (398–409) | Predefined object identifiers + license Feature string unknown | Any TSF from a device with the Advanced IP Defense license |
+
+## Resolved by lab boundary configs (2026-08-03 batch — thanks)
+
+- **Item 2 — inline-ML engine actions (334)**: CONFIRMED. An alert-only
+  engine fails the reference even with Inline Cloud Analysis on. Our check
+  agreed once compared against the matching (non-stale) TSF.
+- **Item 5 — TACACS+ CHAP (234)**: CONFIRMED. PAP fails; our check agrees.
+- **Item 6 — Forward Trust/Untrust split (267)**: CONFIRMED, mechanism
+  corrected. The role comes from the **ssl-decrypt certificate assignment**
+  (rsa/ecdsa slots), not per-cert flags; assigning the same certs to both
+  roles fails exactly those certs. Parser now reads both mechanisms.
+- **Item 7 — single-profile auth sequence (159)**: CONFIRMED; our check agrees.
+- **Item 9 — system log forwarding removal (177/178)**: CONFIRMED; our
+  check agrees against the matching TSF.
+- **Item 10 — WildFire direction**: FALSIFIED our assumption — an
+  upload-only any/any rule PASSES the reference; direction requirement
+  removed (download-only remains unverified, see item 15).
+- **Also observed**: enabling VP Inline Cloud Analysis flips 365 to pass, as
+  expected.
 
 | 11 | `zpp-packet-attack` (87) | Element spellings for the three packet-based protections are guessed (multiple candidates accepted); absent = fail matches all fixtures | Enable malformed-option discard, overlapping-TCP-segment-mismatch discard, and TCP timestamp stripping in a lab Zone Protection profile → grounds the exact XML names |
 | 12 | `gpgw-client-auth` (77) | Fails only when neither certificate profile nor auth profile exists; no failing reference instance seen | Create a lab GP gateway with no client auth |
@@ -34,11 +51,12 @@ Resolved entries move to the bottom with the verdict.
   keep-alive config (`enabled: no`) received opposite verdicts from the
   reference engine (PA-850s pass, PA-460/VM/PA-220 fail) — possibly
   model-metadata-dependent. We always fail disabled keep-alive; allowlisted.
-- **Default-rule logging (12/13)**: the reference fails these on **all six**
-  fixtures, including devices whose `default-security-rules` are overridden
-  with `log-end: yes` (and a log-forwarding profile). No configuration
-  observed makes them pass. We report the honest verdict — pass when the
-  rule is overridden with session-end logging; allowlisted.
+- **Default-rule logging (12/13)**: the reference failed these on all six
+  fixtures through 2026-08-02, including devices with correct overrides —
+  then **passed byte-identical default rules on 2026-08-03**, indicating a
+  server-side engine fix. Our semantics (pass when overridden with
+  session-end logging) now match the fixed engine; the allowlist entries
+  remain only to absorb pre-fix reference reports.
 
 ## Implemented but pass-path unverified (all fixtures fail)
 

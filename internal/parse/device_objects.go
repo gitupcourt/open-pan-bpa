@@ -92,6 +92,11 @@ func parseDeviceObjects(root, dev *xmlnode.Node, cfg *model.Config) {
 				ForwardUntrust: yes(e.ChildText("forward-untrust-ca")),
 			})
 		}
+		// The authoritative trust/untrust roles come from the ssl-decrypt
+		// assignment (per-cert flags are the legacy encoding).
+		if sd := scope.node.First("ssl-decrypt"); sd != nil {
+			markDecryptCerts(sd, cfg)
+		}
 		for _, e := range scope.node.Entries("ssl-tls-service-profile") {
 			cfg.SSLTLSProfiles = append(cfg.SSLTLSProfiles, model.SSLTLSProfile{
 				Name: e.Attr("name"), Location: scope.location,
@@ -123,6 +128,30 @@ func parseDeviceObjects(root, dev *xmlnode.Node, cfg *model.Config) {
 			}
 		}
 	}
+}
+
+// markDecryptCerts applies ssl-decrypt forward trust/untrust certificate
+// assignments (rsa + ecdsa slots) onto the certificate objects.
+func markDecryptCerts(sd *xmlnode.Node, cfg *model.Config) {
+	apply := func(section string, set func(*model.Certificate)) {
+		n := sd.First(section)
+		if n == nil {
+			return
+		}
+		names := map[string]bool{}
+		for _, c := range n.Children {
+			if t := c.TrimText(); t != "" {
+				names[t] = true
+			}
+		}
+		for i := range cfg.Certificates {
+			if names[cfg.Certificates[i].Name] {
+				set(&cfg.Certificates[i])
+			}
+		}
+	}
+	apply("forward-trust-certificate", func(c *model.Certificate) { c.ForwardTrust = true })
+	apply("forward-untrust-certificate", func(c *model.Certificate) { c.ForwardUntrust = true })
 }
 
 func simpleMatch(m *xmlnode.Node) model.SimpleLogMatch {

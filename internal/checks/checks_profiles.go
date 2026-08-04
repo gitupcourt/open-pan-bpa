@@ -226,16 +226,17 @@ func wfForwardAll(cfg *model.Config, _ engine.CheckMeta) []engine.Finding {
 			Object:  engine.ObjectRef{Section: "objects", Feature: "wildfire_analysis_profile", Name: p.Name, Location: p.Location},
 			Verdict: engine.Fail,
 		}
+		// Reference-verified: direction is NOT part of this check (an
+		// upload-only rule passes); the requirement is any app + any type.
 		for _, r := range p.Rules {
 			if len(r.Applications) == 1 && r.Applications[0] == "any" &&
-				len(r.FileTypes) == 1 && r.FileTypes[0] == "any" &&
-				r.Direction == "both" {
+				len(r.FileTypes) == 1 && r.FileTypes[0] == "any" {
 				f.Verdict = engine.Pass
 				break
 			}
 		}
 		if f.Verdict == engine.Fail {
-			f.Message = "No rule forwards all file types for all applications in both directions; unforwarded files are never analyzed."
+			f.Message = "No rule forwards all file types for all applications; unforwarded files are never analyzed."
 			f.FailedFields = map[string]any{"rules": len(p.Rules)}
 		}
 		out = append(out, f)
