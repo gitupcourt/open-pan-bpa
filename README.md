@@ -17,7 +17,8 @@ Strata Cloud Manager posture) is SaaS: your full firewall configuration is uploa
 to a cloud you don't control. For air-gapped and regulated networks that's a
 non-starter. `open-pan-bpa` evaluates best-practice checks **entirely offline**:
 
-- **Input:** a PAN-OS tech support file (`.tgz`) or an exported XML configuration.
+- **Input:** a PAN-OS tech support file (`.tgz`) or an exported XML
+  configuration — from a firewall or from Panorama.
 - **Engine:** a single static binary. No container runtime, no Python, no network
   access — copy it to a jump box and run it.
 - **Output:** self-contained HTML report, versioned JSON, and CSV.

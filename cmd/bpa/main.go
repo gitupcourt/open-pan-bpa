@@ -86,7 +86,7 @@ func runScan(args []string) error {
 	if err != nil {
 		return err
 	}
-	cfg, err := parse.Build(root)
+	cfg, err := parse.BuildAuto(root)
 	if err != nil {
 		return err
 	}

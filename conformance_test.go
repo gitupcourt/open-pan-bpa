@@ -188,7 +188,7 @@ func TestConformanceFixtures(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		cfg, err := parse.Build(root)
+		cfg, err := parse.BuildAuto(root)
 		if err != nil {
 			continue
 		}
@@ -206,7 +206,7 @@ func TestConformanceFixtures(t *testing.T) {
 				// Panorama fixtures are expected to be refused for now.
 				t.Skipf("ingest refused: %v", err)
 			}
-			cfg, err := parse.Build(root)
+			cfg, err := parse.BuildAuto(root)
 			if err != nil {
 				t.Skipf("parse refused: %v", err)
 			}
@@ -313,7 +313,7 @@ func TestEveryCheckProducesFindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := parse.Build(root)
+	cfg, err := parse.BuildAuto(root)
 	if err != nil {
 		t.Fatal(err)
 	}

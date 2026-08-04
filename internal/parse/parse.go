@@ -10,7 +10,6 @@ package parse
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/gitupcourt/open-pan-bpa/internal/model"
 	"github.com/gitupcourt/open-pan-bpa/internal/xmlnode"
@@ -47,16 +46,7 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 			cfg.DefaultRules = append(cfg.DefaultRules, parseSecurityRule(e, name))
 		}
 		for _, e := range vsys.All("rulebase", "decryption", "rules", "entry") {
-			r := model.DecryptionRule{
-				Name: e.Attr("name"), Location: name,
-				Disabled: yes(e.ChildText("disabled")),
-				Action:   e.ChildText("action"),
-				Profile:  e.ChildText("profile"),
-			}
-			if t := e.First("type"); t != nil && len(t.Children) > 0 {
-				r.Type = t.Children[0].Name
-			}
-			cfg.DecryptionRules = append(cfg.DecryptionRules, r)
+			cfg.DecryptionRules = append(cfg.DecryptionRules, parseDecryptionRule(e, name))
 		}
 		parseProfiles(vsys, name, cfg)
 	}
@@ -69,23 +59,14 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 		parseProfiles(shared, "shared", cfg)
 	}
 
-	// A config with no vsys is not a firewall. Refuse loudly rather than
-	// producing a near-empty "assessment" that looks like a clean result.
 	if len(cfg.Vsys) == 0 {
-		markers := []string{}
-		for _, m := range []string{"device-group", "template", "template-stack", "log-collector"} {
-			if len(dev.Entries(m)) > 0 {
-				markers = append(markers, m)
-			}
-		}
-		if len(markers) > 0 {
-			return nil, fmt.Errorf("this is a Panorama/management-appliance configuration (found %s) — Panorama assessment is not supported yet; run against a firewall tech support file or config export", strings.Join(markers, ", "))
-		}
 		return nil, fmt.Errorf("no vsys found in configuration — unsupported document shape")
 	}
 
 	return cfg, nil
 }
+
+var errNoDevices = fmt.Errorf("config has no devices/entry — unsupported document shape")
 
 func yes(s string) bool { return s == "yes" }
 
@@ -130,6 +111,19 @@ func parseSecurityRule(e *xmlnode.Node, location string) model.SecurityRule {
 				}
 			}
 		}
+	}
+	return r
+}
+
+func parseDecryptionRule(e *xmlnode.Node, location string) model.DecryptionRule {
+	r := model.DecryptionRule{
+		Name: e.Attr("name"), Location: location,
+		Disabled: yes(e.ChildText("disabled")),
+		Action:   e.ChildText("action"),
+		Profile:  e.ChildText("profile"),
+	}
+	if t := e.First("type"); t != nil && len(t.Children) > 0 {
+		r.Type = t.Children[0].Name
 	}
 	return r
 }

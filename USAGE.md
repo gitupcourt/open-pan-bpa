@@ -30,10 +30,12 @@ directly on a management jump box.
 
 ## 2. Get an input file
 
-`bpa` currently assesses **firewall** configurations (single- or multi-vsys).
-Panorama / management-appliance configurations are detected and refused with a
-clear error; full Panorama support (device groups, templates) is on the
-roadmap.
+`bpa` assesses both **firewall** configurations (single- or multi-vsys) and
+**Panorama** configurations. Panorama inputs are detected automatically: the
+device-group hierarchy (including parent relationships), shared and per-group
+pre/post rulebases, and template/template-stack device configuration are all
+evaluated, with findings attributed to the device group or template they came
+from.
 
 `bpa` accepts either of the following, produced on the firewall:
 

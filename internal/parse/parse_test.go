@@ -22,21 +22,82 @@ func loadMini(t *testing.T) *xmlnode.Node {
 	return root
 }
 
-func TestPanoramaConfigRefused(t *testing.T) {
-	xml := `<config version="11.1.0"><devices><entry name="localhost.localdomain">
-		<device-group><entry name="dg1"/></device-group>
-		<template><entry name="t1"/></template>
-	</entry></devices></config>`
+func TestPanoramaConfigParsed(t *testing.T) {
+	xml := `<config version="11.1.0">
+	  <readonly><devices><entry name="localhost.localdomain"><device-group>
+	    <entry name="child-dg"><parent-dg>parent-dg</parent-dg></entry>
+	  </device-group></entry></devices></readonly>
+	  <shared>
+	    <pre-rulebase><security><rules>
+	      <entry name="shared-pre"><action>deny</action></entry>
+	    </rules></security></pre-rulebase>
+	  </shared>
+	  <devices><entry name="localhost.localdomain">
+	    <deviceconfig><system><hostname>PANO-1</hostname></system></deviceconfig>
+	    <device-group>
+	      <entry name="parent-dg">
+	        <pre-rulebase><security><rules>
+	          <entry name="parent-rule"><action>allow</action></entry>
+	        </rules></security></pre-rulebase>
+	      </entry>
+	      <entry name="child-dg">
+	        <parent-dg>parent-dg</parent-dg>
+	        <devices><entry name="007000000001"/></devices>
+	        <post-rulebase><security><rules>
+	          <entry name="child-post"><action>allow</action></entry>
+	        </rules></security></post-rulebase>
+	      </entry>
+	    </device-group>
+	    <template><entry name="tmpl-1"><config><devices><entry name="localhost.localdomain">
+	      <vsys><entry name="vsys1"><zone><entry name="tz"><network><layer3><member>eth1/1</member></layer3></network></entry></zone></entry></vsys>
+	    </entry></devices></config></entry></template>
+	    <template-stack><entry name="stack-1">
+	      <templates><member>tmpl-1</member></templates>
+	      <devices><entry name="007000000001"/></devices>
+	    </entry></template-stack>
+	  </entry></devices>
+	</config>`
 	root, err := xmlnode.Parse(strings.NewReader(xml))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = Build(root)
-	if err == nil {
-		t.Fatal("Panorama config should be refused")
+	if !IsPanorama(root) {
+		t.Fatal("config should be detected as Panorama")
 	}
-	if !strings.Contains(err.Error(), "Panorama") {
-		t.Errorf("error should name Panorama, got: %v", err)
+	cfg, err := BuildAuto(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Panorama == nil {
+		t.Fatal("Panorama info not populated")
+	}
+	if cfg.Hostname != "PANO-1" {
+		t.Errorf("hostname = %q", cfg.Hostname)
+	}
+	if len(cfg.Panorama.DeviceGroups) != 2 {
+		t.Fatalf("device groups = %d, want 2", len(cfg.Panorama.DeviceGroups))
+	}
+	// Hierarchy comes from the readonly subtree.
+	if got := cfg.Panorama.Ancestors("child-dg"); len(got) != 1 || got[0] != "parent-dg" {
+		t.Errorf("ancestors of child-dg = %v, want [parent-dg]", got)
+	}
+	// Pre, post, and shared rules all land in the evaluated rulebase.
+	names := map[string]string{}
+	for _, r := range cfg.SecurityRules {
+		names[r.Name] = r.Location
+	}
+	for rule, loc := range map[string]string{
+		"parent-rule": "parent-dg", "child-post": "child-dg", "shared-pre": "shared",
+	} {
+		if names[rule] != loc {
+			t.Errorf("rule %q location = %q, want %q", rule, names[rule], loc)
+		}
+	}
+	if len(cfg.Zones) != 1 || cfg.Zones[0].Location != "tmpl-1/vsys1" {
+		t.Errorf("template zone not attributed: %+v", cfg.Zones)
+	}
+	if len(cfg.Panorama.TemplateStacks) != 1 || len(cfg.Panorama.TemplateStacks[0].Templates) != 1 {
+		t.Errorf("template stack not parsed: %+v", cfg.Panorama.TemplateStacks)
 	}
 }
 
