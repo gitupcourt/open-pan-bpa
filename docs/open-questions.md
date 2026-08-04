@@ -19,7 +19,7 @@ Resolved entries move to the bottom with the verdict.
 | 11 | `zpp-packet-attack` (87) | Element spellings for the three packet-based protections are guessed (candidates accepted) | Enable the three protections in a lab Zone Protection profile → grounds exact XML names |
 | 12 | `gpgw-client-auth` (77) | Fails only when neither certificate profile nor auth profile exists | Create a lab GP gateway with no client auth |
 | 15 | `wf-forward-everything` (47) | Direction is NOT enforced (upload-only passes); download-only still unverified | Make a WildFire rule download-only; re-run reference |
-| 16 | AID EDLs (398–409) | Predefined object identifiers + license Feature string unknown | Any TSF from a device with the Advanced IP Defense license |
+| 16 | AID EDLs (398–409) | **License linkage is SETTLED** (operator-confirmed; the six check titles match the six documented Advanced IP Defense lists one-to-one). Remaining: two literal strings — the config object identifiers used in rules, and the license Feature string from the license inventory. Mismatch fails safe (a licensed+enforced device would show fail instead of pass, never a silent pass). | Any TSF from a device with the Advanced IP Defense license grounds both strings |
 
 ## Resolved by lab boundary configs (2026-08-03 batch — thanks)
 
