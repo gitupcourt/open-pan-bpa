@@ -12,8 +12,8 @@ Resolved entries move to the bottom with the verdict.
 
 | # | Check(s) | What we assume today | Lab config that settles it |
 |---|---|---|---|
-| 1 | `uf-category-logging` / `uf-cred-logging` (196/346) | Any category (or credential category) set to **allow** fails | Set one URL category to Allow (e.g. web-advertisements) and one credential-submission category to Allow; re-run reference |
-| 3 | `uf-block-liability` / `uf-cred-liability` (340/344) | Liability list is exactly: abused-drugs, adult, copyright-infringement, extremism, gambling, peer-to-peer, questionable, weapons | Block 7 of the 8 (drop copyright-infringement); if reference still passes, its list is smaller |
+| 1b | `uf-cred-logging` (346) | A credential-submission category set to **allow** fails | Set one credential-submission category to Allow on any URL profile; re-run reference. (Site-access half — 196 — is RESOLVED: allow entries fail, custom categories included.) |
+| 3 | `uf-block-liability` / `uf-cred-liability` (340/344) | Liability list is exactly: abused-drugs, adult, copyright-infringement, extremism, gambling, peer-to-peer, questionable, weapons | **Must be tested on the PASSING profile**: remove `copyright-infringement` from the block + credential-block lists of `AI Block redirect` (currently passes 340/344) and re-run. Still passes → the list is smaller than docs; fails → list confirmed. Adding the category to an already-failing profile (tried 2026-08-03) cannot discriminate — the reference's failed_fields echo the current list, not the missing set. |
 | 4 | `du-sync-peer-*` (191/192) | Non-HA devices pass trivially; HA devices need sync-to-peer **yes** | Confirmed direction on HA homegateways; the non-HA branch is unverified (PA-220 had no reference coverage here) |
 | 8 | `dev-telemetry-sharing` (197) | Fails only when every telemetry setting is explicitly "no" | Disable all telemetry options; re-run reference |
 | 11 | `zpp-packet-attack` (87) | Element spellings for the three packet-based protections are guessed (candidates accepted) | Enable the three protections in a lab Zone Protection profile → grounds exact XML names |
@@ -23,6 +23,11 @@ Resolved entries move to the bottom with the verdict.
 
 ## Resolved by lab boundary configs (2026-08-03 batch — thanks)
 
+- **Item 1a — allow-action URL categories (196)**: CONFIRMED — a profile
+  with entries in the Allow list (custom categories included) fails the
+  reference; our check agrees. Resolved *silently* in an earlier run: the
+  harness showed no mismatch because both engines failed the same profile,
+  which is why the item lingered here. Lesson: agreement closes items too.
 - **Item 2 — inline-ML engine actions (334)**: CONFIRMED. An alert-only
   engine fails the reference even with Inline Cloud Analysis on. Our check
   agreed once compared against the matching (non-stale) TSF.
