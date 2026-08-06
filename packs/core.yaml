@@ -64,6 +64,23 @@ checks:
     references:
       - https://docs.paloaltonetworks.com/best-practices/security-policy-best-practices
 
+  - slug: rule-log-start
+    title: Log at Session Start should not be enabled on security rules
+    severity: informational
+    section: policies
+    feature: security_rule
+    evaluator: rule_log_start
+    rationale: >-
+      Session-start logging doubles volume for the same sessions, and the
+      start record carries the coarse pre-refinement App-ID. The legitimate
+      exception is known long-lived sessions that never end within an
+      observation window (OT and mainframe-era flows) — which the ot-mode
+      pack variant will treat as correct rather than a finding.
+    remediation: Disable Log at Session Start except on documented long-lived-session rules.
+    pan_bpa_ids: [6]
+    references:
+      - https://docs.paloaltonetworks.com/best-practices/security-policy-best-practices
+
   - slug: rule-log-forwarding
     title: A Log Forwarding profile should be attached to security rules
     severity: informational
