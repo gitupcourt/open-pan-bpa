@@ -53,6 +53,7 @@ func coreRegistry() engine.Registry {
 		"rule_service_specific":   ruleServiceSpecific,
 		"rule_no_any_any_allow":   ruleNoAnyAnyAllow,
 		"rule_log_end":            ruleLogEnd,
+		"rule_log_start":          ruleLogStart,
 		"rule_log_forwarding":     ruleLogForwarding,
 		"rule_profiles_attached":  ruleProfilesAttached,
 		"profile_group_default":   profileGroupDefault,
@@ -146,6 +147,22 @@ func ruleLogEnd(cfg *model.Config, _ engine.CheckMeta) []engine.Finding {
 			f.Verdict = engine.Fail
 			f.Message = "Log at Session End is disabled; traffic matching this rule leaves no session log."
 			f.FailedFields = map[string]any{"log_end": false}
+		}
+		return f
+	})
+}
+
+// ruleLogStart — operator-confirmed semantics: session-start logging doubles
+// log volume for no analytic gain except on known long-lived "elephant"
+// sessions (mainframe, OT tunnels) that never end during an observation
+// window. The ot-mode pack variant will invert this.
+func ruleLogStart(cfg *model.Config, _ engine.CheckMeta) []engine.Finding {
+	return forEachRule(cfg, func(r model.SecurityRule) engine.Finding {
+		f := engine.Finding{Object: ruleObject(r), Verdict: engine.Pass}
+		if r.LogStart {
+			f.Verdict = engine.Fail
+			f.Message = "Log at Session Start is enabled; each session logs twice and the start record carries the pre-refinement App-ID. Reserve it for known long-lived sessions that never end (OT/mainframe flows)."
+			f.FailedFields = map[string]any{"log_start": true}
 		}
 		return f
 	})
