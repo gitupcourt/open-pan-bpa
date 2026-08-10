@@ -54,11 +54,14 @@ type slugSummary struct {
 	Severity    engine.Severity
 	Pass, Fail  int
 	Notes       int
+	References  []string
 }
 
 // WriteHTML emits a self-contained single-file report.
 func WriteHTML(w io.Writer, rep *engine.Report) error {
-	t, err := template.New("report").Parse(htmlTemplate)
+	t, err := template.New("report").Funcs(template.FuncMap{
+		"inc": func(i int) int { return i + 1 },
+	}).Parse(htmlTemplate)
 	if err != nil {
 		return fmt.Errorf("parsing embedded template: %w", err)
 	}
@@ -68,7 +71,7 @@ func WriteHTML(w io.Writer, rep *engine.Report) error {
 	for _, f := range rep.Findings {
 		s, ok := bySlug[f.Slug]
 		if !ok {
-			s = &slugSummary{Slug: f.Slug, Title: f.Title, Severity: f.Severity}
+			s = &slugSummary{Slug: f.Slug, Title: f.Title, Severity: f.Severity, References: f.References}
 			bySlug[f.Slug] = s
 			order = append(order, f.Slug)
 		}

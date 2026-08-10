@@ -23,6 +23,7 @@ td{padding:7px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .sev-critical{color:var(--crit)}.sev-high{color:var(--high)}.sev-warning{color:var(--warn)}.sev-informational{color:var(--info)}
 .v-pass{color:var(--pass)}.v-fail{color:var(--crit)}.v-note{color:var(--note)}
 .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.refs{white-space:nowrap}.refs a{color:var(--info);font-size:11px;text-decoration:none;margin-right:4px}.refs a:hover{text-decoration:underline}
 .foot{margin-top:28px;color:var(--mut);font-size:12px}
 .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .controls input[type=search]{flex:1;min-width:220px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:14px}
@@ -51,7 +52,7 @@ tr.hidden{display:none}
 <div class="wrap"><table>
 <tr><th>Check</th><th>Severity</th><th>Pass</th><th>Fail</th><th>Notes</th></tr>
 {{range .BySlug}}<tr>
-  <td>{{.Title}}<div class="mono">{{.Slug}}</div></td>
+  <td>{{.Title}}<div class="mono">{{.Slug}}{{if .References}} <span class="refs">{{range $i, $u := .References}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" title="{{$u}}">[doc {{inc $i}}]</a>{{end}}</span>{{end}}</div></td>
   <td class="sev sev-{{.Severity}}">{{.Severity}}</td>
   <td class="v-pass">{{.Pass}}</td><td class="v-fail">{{.Fail}}</td><td class="v-note">{{.Notes}}</td>
 </tr>{{end}}
@@ -77,7 +78,7 @@ tr.hidden{display:none}
   <td>{{.Title}}</td>
   <td class="mono">{{.Object.Feature}}{{if .Object.Name}} / {{.Object.Name}}{{end}}</td>
   <td>{{.Object.Location}}</td>
-  <td>{{.Message}}</td>
+  <td>{{.Message}}{{if and .References (ne (print .Verdict) "pass")}} <span class="refs">{{range $i, $u := .References}}<a href="{{$u}}" target="_blank" rel="noopener noreferrer" title="{{$u}}">[doc {{inc $i}}]</a>{{end}}</span>{{end}}</td>
 </tr>{{end}}
 </table></div>
 
