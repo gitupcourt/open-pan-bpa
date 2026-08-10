@@ -6,6 +6,8 @@ package ingest
 
 import (
 	"archive/tar"
+	"bufio"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -80,7 +82,8 @@ func Load(inputPath string) (*xmlnode.Node, Source, error) {
 	defer f.Close()
 
 	lower := strings.ToLower(inputPath)
-	if strings.HasSuffix(lower, ".tgz") || strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".gz") {
+	if strings.HasSuffix(lower, ".tgz") || strings.HasSuffix(lower, ".tar.gz") ||
+		strings.HasSuffix(lower, ".gz") || strings.HasSuffix(lower, ".tar") {
 		return loadTSF(f, inputPath)
 	}
 
@@ -94,13 +97,40 @@ func Load(inputPath string) (*xmlnode.Node, Source, error) {
 	return root, Source{Path: inputPath, Kind: "xml"}, nil
 }
 
+// gzipMagic is the two-byte gzip stream header.
+var gzipMagic = []byte{0x1f, 0x8b}
+
+// tarMagicOffset/tarMagic locate the ustar magic inside a tar header block.
+const tarMagicOffset = 257
+
+var tarMagic = []byte("ustar")
+
 // loadTSF scans a tech support tarball for the best config candidate.
+// The archive format is detected from content, not the file name: browsers
+// and intercepting proxies routinely strip a download's gzip layer
+// (Content-Encoding) while keeping the .tgz name, leaving a plain tar.
 func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
-	gz, err := gzip.NewReader(f)
-	if err != nil {
-		return nil, Source{}, fmt.Errorf("%s: not a gzip archive: %w", inputPath, err)
+	br := bufio.NewReader(f)
+	head, err := br.Peek(tarMagicOffset + len(tarMagic))
+	if err != nil && err != io.EOF {
+		return nil, Source{}, fmt.Errorf("%s: reading header: %w", inputPath, err)
 	}
-	defer gz.Close()
+
+	var raw io.Reader
+	switch {
+	case bytes.HasPrefix(head, gzipMagic):
+		gz, err := gzip.NewReader(br)
+		if err != nil {
+			return nil, Source{}, fmt.Errorf("%s: opening gzip stream: %w", inputPath, err)
+		}
+		defer gz.Close()
+		raw = gz
+	case len(head) >= tarMagicOffset+len(tarMagic) &&
+		bytes.HasPrefix(head[tarMagicOffset:], tarMagic):
+		raw = br
+	default:
+		return nil, Source{}, fmt.Errorf("%s: neither a gzip archive nor a tar archive (file may be truncated or renamed)", inputPath)
+	}
 
 	// Rank of the best candidate seen so far; lower index = better.
 	best := len(tsfConfigCandidates)
@@ -108,7 +138,7 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 	var bestName string
 	var transcript []byte
 
-	tr := tar.NewReader(&cappedReader{r: gz, limit: maxArchiveBytes})
+	tr := tar.NewReader(&cappedReader{r: raw, limit: maxArchiveBytes})
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
