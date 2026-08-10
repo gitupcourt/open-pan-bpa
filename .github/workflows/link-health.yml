@@ -1,0 +1,87 @@
+name: link-health
+
+# Weekly HEAD-check of every best-practice reference URL in packs/*.yaml
+# (issue #24). Vendor doc URLs rot — restructures, version-pinned paths,
+# decommissions. Dead or redirected links are reported by upserting a single
+# tracking issue so packs can be pointed at canonical locations.
+#
+# Repo-side hygiene only: the shipped binary never fetches anything.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC — off the top-of-hour rush
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: link-health
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check reference URLs
+        id: scan
+        run: |
+          set -euo pipefail
+          # Unique URLs from pack references. Restricting to packs/ keeps the
+          # scan scoped to what reports actually surface.
+          grep -rhoE 'https?://[^" ]+' packs/*.yaml | sort -u > urls.txt
+          echo "Checking $(wc -l < urls.txt) unique URLs"
+
+          : > problems.md
+          while IFS= read -r url; do
+            # First request without redirects to classify 3xx, then follow to
+            # find the final destination + status.
+            code=$(curl -sS -o /dev/null -m 20 -w '%{http_code}' -I "$url" || echo "000")
+            final_code=$code
+            final_url=$url
+            if [ "${code:0:1}" = "3" ]; then
+              read -r final_code final_url < <(curl -sS -o /dev/null -m 20 -L -w '%{http_code} %{url_effective}' -I "$url" || echo "000 $url")
+            fi
+            # Some doc servers reject HEAD; retry hard failures as GET.
+            if [ "$final_code" = "000" ] || [ "$final_code" = "405" ] || [ "$final_code" = "403" ]; then
+              read -r final_code final_url < <(curl -sS -o /dev/null -m 20 -L -w '%{http_code} %{url_effective}' "$url" || echo "000 $url")
+            fi
+            if [ "${final_code:0:1}" != "2" ]; then
+              echo "- DEAD (\`$final_code\`): $url" >> problems.md
+            elif [ "$final_url" != "$url" ]; then
+              echo "- REDIRECTED: $url -> $final_url" >> problems.md
+            fi
+            sleep 1
+          done < urls.txt
+
+          echo "problems=$(wc -l < problems.md)" >> "$GITHUB_OUTPUT"
+          cat problems.md
+
+      - name: Upsert tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBLEMS: ${{ steps.scan.outputs.problems }}
+        run: |
+          set -euo pipefail
+          title="Link health: stale best-practice reference URLs"
+          existing=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          if [ "$PROBLEMS" -gt 0 ]; then
+            {
+              echo "Automated weekly scan of \`references\` URLs in \`packs/\` (see #24)."
+              echo "Redirects list the final URL — update the pack to the canonical location."
+              echo ""
+              cat problems.md
+              echo ""
+              echo "_Last scan: $(date -u +%F) — run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}_"
+            } > body.md
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --body-file body.md
+            else
+              gh issue create --title "$title" --body-file body.md
+            fi
+          elif [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "All reference URLs healthy as of $(date -u +%F)."
+          fi
