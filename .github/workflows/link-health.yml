@@ -31,23 +31,30 @@ jobs:
         run: |
           set -euo pipefail
           # Unique URLs from pack references. Restricting to packs/ keeps the
-          # scan scoped to what reports actually surface.
-          grep -rhoE 'https?://[^" ]+' packs/*.yaml | sort -u > urls.txt
+          # scan scoped to what reports actually surface. The character class
+          # excludes YAML flow-list/quote terminators (] " ' space) so
+          # `references: [https://…]` doesn't leak a trailing bracket into
+          # the URL (that broke the first scheduled run).
+          grep -rhoE 'https?://[^]"'\'' ]+' packs/*.yaml | sort -u > urls.txt
           echo "Checking $(wc -l < urls.txt) unique URLs"
 
           : > problems.md
           while IFS= read -r url; do
             # First request without redirects to classify 3xx, then follow to
-            # find the final destination + status.
+            # find the final destination + status. The \n in -w matters: read
+            # exits nonzero on a line without a trailing newline, and under
+            # `set -e` that silently killed the whole loop on the first
+            # successful redirect probe. `|| true` is belt-and-braces (read
+            # still populates its fields at EOF).
             code=$(curl -sS -o /dev/null -m 20 -w '%{http_code}' -I "$url" || echo "000")
             final_code=$code
             final_url=$url
             if [ "${code:0:1}" = "3" ]; then
-              read -r final_code final_url < <(curl -sS -o /dev/null -m 20 -L -w '%{http_code} %{url_effective}' -I "$url" || echo "000 $url")
+              read -r final_code final_url < <(curl -sS -o /dev/null -m 20 -L -w '%{http_code} %{url_effective}\n' -I "$url" || echo "000 $url") || true
             fi
             # Some doc servers reject HEAD; retry hard failures as GET.
             if [ "$final_code" = "000" ] || [ "$final_code" = "405" ] || [ "$final_code" = "403" ]; then
-              read -r final_code final_url < <(curl -sS -o /dev/null -m 20 -L -w '%{http_code} %{url_effective}' "$url" || echo "000 $url")
+              read -r final_code final_url < <(curl -sS -o /dev/null -m 20 -L -w '%{http_code} %{url_effective}\n' "$url" || echo "000 $url") || true
             fi
             if [ "${final_code:0:1}" != "2" ]; then
               echo "- DEAD (\`$final_code\`): $url" >> problems.md
