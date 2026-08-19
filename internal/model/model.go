@@ -322,6 +322,7 @@ type GPGateway struct {
 	TunnelsFullAccess int // tunnel configs whose access-route includes 0.0.0.0/0
 	HasSatellite      bool
 	SatelliteReplay   string // anti-replay value, "" when absent
+	TunnelMode        string // "yes"/"no"; reference gates satellite-replay on it
 }
 
 // CryptoProfile is an IKE or IPsec crypto profile with its AKE rounds.

@@ -42,8 +42,53 @@ func parseNetworkObjects(dev *xmlnode.Node, cfg *model.Config) {
 		cfg.IPSecProfiles = append(cfg.IPSecProfiles, parseCrypto(e))
 	}
 	for _, e := range network.All("global-protect", "global-protect-gateway", "entry") {
-		cfg.GPGateways = append(cfg.GPGateways, parseGPGateway(e))
+		cfg.GPGateways = append(cfg.GPGateways, parseGPGateway(e, "vsys1"))
 	}
+	// Deliberately NOT parsed: network/tunnel/global-protect-gateway. Those
+	// entries hold tunnel runtime settings whose element names collide with
+	// gateway-definition semantics (the ipsec anti-replay knob is not the
+	// satellite anti-replay knob) — merging them flips verdicts.
+}
+
+// mergeGPGateways folds duplicate gateway records. The same gateway surfaces
+// in up to three config scopes — the vsys definition (roles, client-auth,
+// TLS profile), the network/global-protect scope, and the network/tunnel
+// scope — under names that normalize to one gateway after the "-N" suffix
+// strip. Signals are OR-merged so whichever scope carries the definition
+// wins; nothing a scope doesn't set can erase another scope's evidence.
+func mergeGPGateways(gws []model.GPGateway) []model.GPGateway {
+	idx := map[string]int{}
+	var out []model.GPGateway
+	for _, g := range gws {
+		i, ok := idx[g.Name]
+		if !ok {
+			idx[g.Name] = len(out)
+			out = append(out, g)
+			continue
+		}
+		m := &out[i]
+		if m.TLSProfile == "" {
+			m.TLSProfile = g.TLSProfile
+		}
+		m.HasClientAuth = m.HasClientAuth || g.HasClientAuth
+		m.HasCertProfile = m.HasCertProfile || g.HasCertProfile
+		if g.TunnelConfigs > m.TunnelConfigs {
+			m.TunnelConfigs = g.TunnelConfigs
+			m.TunnelsFullAccess = g.TunnelsFullAccess
+		}
+		m.HasSatellite = m.HasSatellite || g.HasSatellite
+		if m.SatelliteReplay == "" {
+			m.SatelliteReplay = g.SatelliteReplay
+		}
+		if m.TunnelMode == "" {
+			m.TunnelMode = g.TunnelMode
+		}
+		// A real vsys location beats the network-scope placeholder.
+		if m.Location == "vsys1" && g.Location != "vsys1" && g.Location != "" {
+			m.Location = g.Location
+		}
+	}
+	return out
 }
 
 func parseHA(ha *xmlnode.Node) model.HAConfig {
@@ -96,11 +141,11 @@ func parseCrypto(e *xmlnode.Node) model.CryptoProfile {
 	return p
 }
 
-func parseGPGateway(e *xmlnode.Node) model.GPGateway {
+func parseGPGateway(e *xmlnode.Node, location string) model.GPGateway {
 	g := model.GPGateway{
 		// Vendor reports strip the tunnel-mode "-N" suffix from gateway names.
 		Name:     strings.TrimSuffix(e.Attr("name"), "-N"),
-		Location: "vsys1",
+		Location: location,
 	}
 	g.TLSProfile = findChildText(e, "ssl-tls-service-profile")
 	for _, ca := range e.All("client-auth", "entry") {
@@ -122,6 +167,7 @@ func parseGPGateway(e *xmlnode.Node) model.GPGateway {
 		g.HasSatellite = true
 		g.SatelliteReplay = findChildText(e, "anti-replay")
 	}
+	g.TunnelMode = findChildText(e, "tunnel-mode")
 	return g
 }
 

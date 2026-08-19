@@ -48,8 +48,15 @@ func Build(root *xmlnode.Node) (*model.Config, error) {
 		for _, e := range vsys.All("rulebase", "decryption", "rules", "entry") {
 			cfg.DecryptionRules = append(cfg.DecryptionRules, parseDecryptionRule(e, name))
 		}
+		// Gateway definitions (roles, client-auth, TLS profile) live under
+		// the vsys on current PAN-OS; the network scope holds only tunnel
+		// settings. mergeGPGateways folds the scopes per gateway.
+		for _, e := range vsys.All("global-protect", "global-protect-gateway", "entry") {
+			cfg.GPGateways = append(cfg.GPGateways, parseGPGateway(e, name))
+		}
 		parseProfiles(vsys, name, cfg)
 	}
+	cfg.GPGateways = mergeGPGateways(cfg.GPGateways)
 
 	// Shared-scope objects (present on firewalls with Panorama-pushed config).
 	if shared := root.First("shared"); shared != nil {
