@@ -17,9 +17,25 @@ Resolved entries move to the bottom with the verdict.
 | 4 | `du-sync-peer-*` (191/192) | Non-HA devices pass trivially; HA devices need sync-to-peer **yes** | Confirmed direction on HA homegateways; the non-HA branch is unverified (PA-220 had no reference coverage here) |
 | 8 | `dev-telemetry-sharing` (197) | Fails only when every telemetry setting is explicitly "no" | Disable all telemetry options; re-run reference |
 | 11 | `zpp-packet-attack` (87) | Element names now GROUNDED from IronSkillet + field configs (`discard-malformed-option`, `discard-overlapping-tcp-segment-mismatch`, `remove-tcp-timestamp`); only the pass path is unverified (every fixture fails all three) | Enable the three protections in a lab Zone Protection profile → confirms the reference passes when they're set (and whether it wants more) |
-| 12 | `gpgw-client-auth` (77) | Fails only when neither certificate profile nor auth profile exists | Create a lab GP gateway with no client auth |
-| 15 | `wf-forward-everything` (47) | Direction is NOT enforced (upload-only passes); download-only still unverified | Make a WildFire rule download-only; re-run reference |
+| 15 | `wf-forward-everything` (47) | Direction is NOT enforced (upload-only passes); download-only still unverified | Download-only rule IS configured (2026-08-18 config); awaiting reference re-run |
 | 16 | AID EDLs (398–409) | **License linkage is SETTLED** (operator-confirmed; the six check titles match the six documented Advanced IP Defense lists one-to-one). Remaining: two literal strings — the config object identifiers used in rules, and the license Feature string from the license inventory. Mismatch fails safe (a licensed+enforced device would show fail instead of pass, never a silent pass). | Any TSF from a device with the Advanced IP Defense license grounds both strings |
+
+## Resolved 2026-08-18
+
+- **Item 12 — GP gateway client auth (77)**: RESOLVED as commit-blocked.
+  PAN-OS refuses to commit a gateway tunnel with neither a certificate
+  profile nor an authentication profile ("tunnel interface … must define
+  client cert profile and/or auth profile" — operator-verified on a lab
+  device). The fail path is unreachable in any committed config; the check
+  stays for bare-XML robustness. Same session also fixed the real gap:
+  gateway definitions live under the **vsys** global-protect scope on
+  current PAN-OS and were not parsed at all — the four gateway checks
+  silently skipped firewall configs of that shape.
+- **Satellite anti-replay (79)**: semantics reference-verified once the
+  vsys parsing fix made real gateways visible — the reference fails EVERY
+  tunnel-mode gateway without satellite anti-replay (satellite config
+  present or not) and passes non-tunnel (internal) gateways. Ours now
+  gates on `tunnel-mode` the same way; 12 reference instances agree.
 
 ## Resolved by lab boundary configs (2026-08-03 batch — thanks)
 
@@ -45,8 +61,6 @@ Resolved entries move to the bottom with the verdict.
 - **Also observed**: enabling VP Inline Cloud Analysis flips 365 to pass, as
   expected.
 
-| 11 | `zpp-packet-attack` (87) | Element spellings for the three packet-based protections are guessed (multiple candidates accepted); absent = fail matches all fixtures | Enable malformed-option discard, overlapping-TCP-segment-mismatch discard, and TCP timestamp stripping in a lab Zone Protection profile → grounds the exact XML names |
-| 12 | `gpgw-client-auth` (77) | Fails only when neither certificate profile nor auth profile exists; no failing reference instance seen | Create a lab GP gateway with no client auth |
 | 13 | `ha-aa-*` (147/148) | Active/Active branch entirely unverified (all fixtures are A/P) | If an A/A lab pair is ever available; low priority |
 | 14 | `crypto` KEM asymmetry (358/359/376) | IKE profiles without AKE rounds pass; IPsec profiles without AKE fail (defaults are DH). Inferred from all-pass/all-fail split | Add a KEM AKE round to a lab IPsec profile → confirms the pass path |
 

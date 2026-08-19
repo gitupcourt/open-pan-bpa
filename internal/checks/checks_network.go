@@ -298,7 +298,10 @@ func gpgwSatellite(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	var out []engine.Finding
 	for _, g := range cfg.GPGateways {
 		f := engine.Finding{Object: gpgwObject(g, meta), Verdict: engine.Pass}
-		if g.HasSatellite && g.SatelliteReplay != "yes" {
+		// Reference-verified gating (check 79): every tunnel-mode gateway
+		// must enable satellite anti-replay — satellite config present or
+		// not. Non-tunnel (internal) gateways pass regardless.
+		if (g.TunnelMode == "yes" || g.HasSatellite) && g.SatelliteReplay != "yes" {
 			f.Verdict = engine.Fail
 			f.Message = "The satellite tunnel configuration does not enable anti-replay; captured tunnel packets can be re-injected."
 			f.FailedFields = map[string]any{"anti-replay": orNo(g.SatelliteReplay)}

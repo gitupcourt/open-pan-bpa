@@ -111,10 +111,14 @@ func BuildPanorama(root *xmlnode.Node) (*model.Config, error) {
 			for _, e := range vsys.Entries("zone") {
 				cfg.Zones = append(cfg.Zones, parseZone(e, vname))
 			}
+			for _, e := range vsys.All("global-protect", "global-protect-gateway", "entry") {
+				cfg.GPGateways = append(cfg.GPGateways, parseGPGateway(e, vname))
+			}
 			parseProfiles(vsys, vname, cfg)
 		}
 		parseNetworkObjects(tdev, cfg)
 	}
+	cfg.GPGateways = mergeGPGateways(cfg.GPGateways)
 
 	for _, st := range dev.Entries("template-stack") {
 		cfg.Panorama.TemplateStacks = append(cfg.Panorama.TemplateStacks, model.TemplateStack{
