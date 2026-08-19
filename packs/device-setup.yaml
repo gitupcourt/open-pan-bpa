@@ -202,7 +202,7 @@ checks:
     rationale: Forwarded overflow segments bypass inspection — a classic evasion channel.
     remediation: Do not forward segments exceeding the out-of-order queue.
     pan_bpa_ids: [214]
-    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/getting-started/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
 
   - slug: dev-tcp-inspection-queue
     title: Forwarding segments exceeding the TCP content-inspection queue should be disabled
@@ -213,7 +213,7 @@ checks:
     rationale: Same evasion channel, content-inspection stage.
     remediation: Do not forward segments exceeding the TCP content-inspection queue.
     pan_bpa_ids: [215]
-    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/getting-started/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
 
   - slug: dev-udp-inspection-queue
     title: Forwarding datagrams exceeding the UDP content-inspection queue should be disabled
@@ -224,7 +224,7 @@ checks:
     rationale: Same evasion channel, UDP.
     remediation: Do not forward datagrams exceeding the UDP content-inspection queue.
     pan_bpa_ids: [216]
-    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/getting-started/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
 
   - slug: dev-appid-inspection-queue
     title: Forwarding segments exceeding the App-ID inspection queue should be disabled
@@ -235,7 +235,7 @@ checks:
     rationale: Overflow segments skipping App-ID arrive unidentified and unpoliced.
     remediation: Do not forward segments exceeding the App-ID inspection queue.
     pan_bpa_ids: [217]
-    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/administration/threat-prevention/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
+    references: [https://docs.paloaltonetworks.com/advanced-threat-prevention/getting-started/best-practices-for-securing-your-network-from-layer-4-and-layer-7-evasions]
 
   - slug: dev-xff-user-id
     title: X-Forwarded-For should feed User-ID

@@ -169,7 +169,7 @@ checks:
       dependency on the lapsed feature. Requires a tech support file as input
       (license state is not part of the configuration XML).
     references:
-      - https://docs.paloaltonetworks.com/pan-os/11-1/pan-os-admin/subscriptions/activate-subscription-licenses
+      - https://docs.paloaltonetworks.com/ngfw/getting-started/ngfw-compatible-subscriptions/activate-subscription-licenses
 
   - slug: password-complexity
     title: Minimum password complexity should be enforced for local accounts
