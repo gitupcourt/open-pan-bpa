@@ -54,6 +54,7 @@ type htmlCheck struct {
 	Slug       string   `json:"slug"`
 	Title      string   `json:"title"`
 	Severity   int      `json:"sev"`
+	Section    string   `json:"sec"` // policies | objects | network | device
 	References []string `json:"refs,omitempty"`
 	Pass       int      `json:"pass"`
 	Fail       int      `json:"fail"`
@@ -104,7 +105,8 @@ func WriteHTML(w io.Writer, rep *engine.Report) error {
 			checkIdx[f.Slug] = ci
 			p.Checks = append(p.Checks, htmlCheck{
 				Slug: f.Slug, Title: f.Title,
-				Severity: severityCode[f.Severity], References: f.References,
+				Severity: severityCode[f.Severity], Section: f.Object.Section,
+				References: f.References,
 			})
 		}
 		li, ok := locIdx[f.Object.Location]
