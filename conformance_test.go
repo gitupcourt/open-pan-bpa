@@ -219,7 +219,15 @@ func TestConformanceFixtures(t *testing.T) {
 				t.Fatal(err)
 			}
 			if len(cfg.SecurityRules) == 0 {
-				t.Error("no security rules parsed")
+				// Guard against silent scope bugs (a parser change dropping
+				// every rule) — but only when the raw config actually holds
+				// rule entries. A spare device with an empty rulebase is a
+				// legitimate zero.
+				if n := countSecurityRuleEntries(root); n > 0 {
+					t.Errorf("config holds %d security rule entries but none were parsed", n)
+				} else {
+					t.Logf("%s: empty security rulebase in config; zero rules is genuine", cfg.Hostname)
+				}
 			}
 			t.Logf("%s (%s): %d rules, %d findings (%d fail)",
 				cfg.Hostname, src.Kind, len(cfg.SecurityRules), len(rep.Findings), rep.Summary.Fail)
@@ -245,6 +253,29 @@ func TestConformanceFixtures(t *testing.T) {
 type checkMapping struct {
 	feature string
 	ids     []int
+}
+
+// countSecurityRuleEntries walks the raw config for <security><rules><entry>
+// nodes, covering firewall vsys and Panorama pre/post rulebases alike. It is
+// the ground truth the zero-rules guard checks the parser against.
+func countSecurityRuleEntries(n *xmlnode.Node) int {
+	total := 0
+	if n.Name == "security" {
+		for _, c := range n.Children {
+			if c.Name != "rules" {
+				continue
+			}
+			for _, e := range c.Children {
+				if e.Name == "entry" {
+					total++
+				}
+			}
+		}
+	}
+	for _, c := range n.Children {
+		total += countSecurityRuleEntries(c)
+	}
+	return total
 }
 
 func compareVerdicts(t *testing.T, rep *engine.Report, ref refVerdicts, mappings map[string]checkMapping) {
