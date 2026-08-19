@@ -41,6 +41,8 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
 #more{display:none;margin:12px auto;padding:8px 20px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:13px;cursor:pointer}
 #more:hover{background:var(--chipbg)}
 .hint{color:var(--mut);font-size:12px;margin:6px 0}
+#catnav{margin:18px 0 4px;border-bottom:2px solid var(--line);padding-bottom:10px}
+.chip.cat{font-size:13px;padding:6px 16px;text-transform:capitalize}
 </style>
 </head>
 <body>
@@ -57,6 +59,8 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
 </div>
 
 <noscript><p class="hint"><strong>This report requires JavaScript</strong> (self-contained — nothing is loaded or sent anywhere). Use the JSON or CSV output for scripted review.</p></noscript>
+
+<div class="controls" id="catnav"></div>
 
 <div id="bylocation-section" hidden>
 <h2>Where to look</h2>
@@ -118,11 +122,16 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
     verdicts: {0: true, 1: true, 2: false},
     sevs: {0: true, 1: true, 2: true, 3: true},
     q: '',
+    cat: 'all', // section filter: policies | objects | network | device
     loc: -1,   // -1 = all
     check: -1, // -1 = all
     group: 'none',
     limit: CHUNK
   };
+
+  function inCat(i) {
+    return state.cat === 'all' || CHECKS[F[i][0]].sec === state.cat;
+  }
 
   // ---- precomputed orders -------------------------------------------------
   function triageRank(i) { // fails first, by severity, then notes, then passes
@@ -164,21 +173,55 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
     return s;
   }
 
+  // ---- category nav -------------------------------------------------------
+  // Mirrors the PAN-OS UI's top-level navigation. Selecting a category
+  // filters every table on the page.
+  var CAT_ORDER = ['policies', 'objects', 'network', 'device'];
+  var cats = CAT_ORDER.filter(function (c) {
+    return CHECKS.some(function (k) { return k.sec === c; });
+  });
+  CHECKS.forEach(function (k) {
+    if (k.sec && cats.indexOf(k.sec) === -1) { cats.push(k.sec); }
+  });
+  var catnav = document.getElementById('catnav');
+  ['all'].concat(cats).forEach(function (c) {
+    var chip = el('span', 'chip cat' + (c === 'all' ? ' on' : ''), c);
+    chip.dataset.cat = c;
+    chip.addEventListener('click', function () {
+      if (state.cat === c) { return; }
+      state.cat = c;
+      catnav.querySelectorAll('.chip').forEach(function (x) {
+        x.classList.toggle('on', x.dataset.cat === c);
+      });
+      // A check/location focus from another category would over-filter.
+      state.check = -1;
+      renderLocs();
+      renderChecks();
+      apply();
+    });
+    catnav.appendChild(chip);
+  });
+
   // ---- by-location table --------------------------------------------------
-  var locStats = LOCS.map(function (name, i) {
-    return {i: i, name: name, sev: [0, 0, 0, 0], notes: 0, pass: 0};
-  });
-  F.forEach(function (f) {
-    var s = locStats[f[3]];
-    if (f[1] === 0) { s.sev[f[2]]++; } else if (f[1] === 1) { s.notes++; } else { s.pass++; }
-  });
-  locStats.sort(function (a, b) {
-    for (var k = 0; k < 4; k++) { if (a.sev[k] !== b.sev[k]) { return b.sev[k] - a.sev[k]; } }
-    return b.notes - a.notes;
-  });
-  if (LOCS.length > 1) {
-    document.getElementById('bylocation-section').hidden = false;
+  function renderLocs() {
+    var locStats = LOCS.map(function (name, i) {
+      return {i: i, name: name, sev: [0, 0, 0, 0], notes: 0, pass: 0};
+    });
+    F.forEach(function (f, i) {
+      if (!inCat(i)) { return; }
+      var s = locStats[f[3]];
+      if (f[1] === 0) { s.sev[f[2]]++; } else if (f[1] === 1) { s.notes++; } else { s.pass++; }
+    });
+    locStats = locStats.filter(function (s) {
+      return s.sev[0] + s.sev[1] + s.sev[2] + s.sev[3] + s.notes + s.pass > 0;
+    });
+    locStats.sort(function (a, b) {
+      for (var k = 0; k < 4; k++) { if (a.sev[k] !== b.sev[k]) { return b.sev[k] - a.sev[k]; } }
+      return b.notes - a.notes;
+    });
+    document.getElementById('bylocation-section').hidden = LOCS.length < 2;
     var ltb = document.querySelector('#bylocation tbody');
+    ltb.textContent = '';
     locStats.forEach(function (s) {
       var tr = el('tr', 'clickable');
       tr.appendChild(el('td', 'mono', s.name || '—'));
@@ -191,23 +234,29 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
       ltb.appendChild(tr);
     });
   }
+  renderLocs();
 
   // ---- by-check table -----------------------------------------------------
-  var ctb = document.querySelector('#bycheck tbody');
-  CHECKS.forEach(function (c, i) {
-    var tr = el('tr', 'clickable');
-    var td = el('td', null, c.title);
-    var mono = el('div', 'mono', c.slug + ' ');
-    mono.appendChild(refsSpan(c));
-    td.appendChild(mono);
-    tr.appendChild(td);
-    tr.appendChild(el('td', 'sev sev-' + S_NAMES[c.sev], S_NAMES[c.sev]));
-    tr.appendChild(el('td', 'v-pass', String(c.pass)));
-    tr.appendChild(el('td', 'v-fail', String(c.fail)));
-    tr.appendChild(el('td', 'v-note', String(c.notes)));
-    tr.addEventListener('click', function () { setFilter('check', i); });
-    ctb.appendChild(tr);
-  });
+  function renderChecks() {
+    var ctb = document.querySelector('#bycheck tbody');
+    ctb.textContent = '';
+    CHECKS.forEach(function (c, i) {
+      if (state.cat !== 'all' && c.sec !== state.cat) { return; }
+      var tr = el('tr', 'clickable');
+      var td = el('td', null, c.title);
+      var mono = el('div', 'mono', c.slug + ' ');
+      mono.appendChild(refsSpan(c));
+      td.appendChild(mono);
+      tr.appendChild(td);
+      tr.appendChild(el('td', 'sev sev-' + S_NAMES[c.sev], S_NAMES[c.sev]));
+      tr.appendChild(el('td', 'v-pass', String(c.pass)));
+      tr.appendChild(el('td', 'v-fail', String(c.fail)));
+      tr.appendChild(el('td', 'v-note', String(c.notes)));
+      tr.addEventListener('click', function () { setFilter('check', i); });
+      ctb.appendChild(tr);
+    });
+  }
+  renderChecks();
 
   // ---- findings table -----------------------------------------------------
   var ftb = document.querySelector('#findings tbody');
@@ -218,6 +267,7 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
 
   function match(i) {
     var f = F[i];
+    if (!inCat(i)) { return false; }
     if (!state.verdicts[f[1]]) { return false; }
     if (f[1] !== 1 && !state.sevs[f[2]]) { return false; } // notes bypass severity
     if (state.loc >= 0 && f[3] !== state.loc) { return false; }
@@ -305,6 +355,15 @@ tr.grouphdr .gcount{color:var(--mut);font-weight:400;margin-left:8px}
   }
 
   function setFilter(kind, v) {
+    // Clicking a focus target REPLACES the previous focus rather than
+    // stacking on top of it — stacked loc+check+search filters quickly
+    // over-filter down to nothing.
+    if (v >= 0) {
+      state.loc = -1;
+      state.check = -1;
+      state.q = '';
+      q.value = '';
+    }
     state[kind] = v;
     apply();
     document.getElementById('findings').scrollIntoView({behavior: 'smooth', block: 'nearest'});
