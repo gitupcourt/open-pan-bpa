@@ -71,9 +71,9 @@ type CheckMeta struct {
 
 // Pack is a named collection of check definitions.
 type Pack struct {
-	Name    string      `yaml:"pack"`
-	Version string      `yaml:"version"`
-	Checks  []CheckMeta `yaml:"checks"`
+	Name    string      `yaml:"pack" json:"pack"`
+	Version string      `yaml:"version" json:"version"`
+	Checks  []CheckMeta `yaml:"checks" json:"checks"`
 }
 
 // Evaluator computes findings for every object a check applies to. Evaluators
