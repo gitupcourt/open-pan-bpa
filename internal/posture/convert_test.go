@@ -50,6 +50,16 @@ const fixture = `{
           ]
         }
       ]
+    },
+    "device": {
+      "device_setup_general": [
+        {
+          "configuration": {"template_name": "branch-stack", "template_type": "template-stack"},
+          "warnings": [
+            {"check_id": 60, "check_name": "Login banner", "check_type": "Warning", "check_message": "no banner", "check_passed": false}
+          ]
+        }
+      ]
     }
   }
 }`
@@ -125,8 +135,13 @@ func TestConvert(t *testing.T) {
 		t.Fatalf("pass finding wrong: %+v", f)
 	}
 
+	// Panorama device-scope wrappers attribute via template_name.
+	if f := find(t, rep, "pan-api-60", ""); f.Object.Location != "branch-stack" {
+		t.Fatalf("template attribution wrong: %+v", f.Object)
+	}
+
 	s := rep.Summary
-	if s.Pass != 1 || s.Fail != 2 || s.Notes != 3 || s.NotApplicable != 1 {
+	if s.Pass != 1 || s.Fail != 3 || s.Notes != 3 || s.NotApplicable != 1 {
 		t.Fatalf("summary wrong: %+v", s)
 	}
 	if rep.InputKind != "api" || rep.SchemaVersion != engine.SchemaVersion {
