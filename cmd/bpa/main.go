@@ -44,6 +44,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
+	case "api-scan":
+		if err := runAPIScan(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			os.Exit(1)
+		}
 	case "catalog":
 		if err := runCatalog(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
@@ -62,7 +67,8 @@ func usage() {
 (not an official Palo Alto Networks product)
 
 usage:
-  bpa scan <config.xml | techsupport.tgz> [flags]
+  bpa scan <config.xml | techsupport.tgz> [flags]      offline assessment (no network, ever)
+  bpa api-scan <config.xml | techsupport.tgz> [flags]  assessment by Palo Alto Networks' hosted BPA service (UPLOADS the config)
   bpa render <report.json> [flags]
   bpa catalog [--packs DIR]
   bpa version
@@ -71,6 +77,12 @@ flags for scan:
   --out DIR        output directory (default: current directory)
   --format LIST    comma-separated: json,html,csv (default: json,html)
   --packs DIR      load check packs from DIR instead of the built-in packs
+
+api-scan is the one deliberately-online mode: it submits the configuration
+to the vendor's official posture (BPA) API and reports THEIR engine's
+verdicts in this tool's formats. Credentials via PANW_CLIENT_ID,
+PANW_CLIENT_SECRET, PANW_TSG_ID (env-only). "bpa scan" performs no network
+I/O under any circumstances.
 
 render re-emits an existing report JSON as HTML/CSV (default: html,csv) —
 presentation is versioned with this binary, so external producers of the
