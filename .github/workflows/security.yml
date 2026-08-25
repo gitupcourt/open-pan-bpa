@@ -8,7 +8,12 @@ name: security
 # (see SECURITY.md + .gitleaks.toml). gitleaks is BLOCKING from the first PR.
 #
 # Deferred to later increments (each needs Go code and/or public visibility):
-#   - govulncheck + gosec (Go SAST / vuln)   -> with the Phase-0 scaffold PR
+#   - govulncheck (Go vuln scan)              -> ACTIVE below (blocking; daily
+#                                                schedule catches newly-disclosed
+#                                                vulns against unchanged code)
+#   - gosec (Go SAST)                         -> follow-up increment (needs a
+#                                                version-pin + baseline-triage
+#                                                decision; see appsec#8)
 #   - Dependabot gomod                        -> activates when go.mod lands
 #   - CodeQL (Go)                             -> at go-public (code scanning on a
 #                                                private repo needs GitHub Advanced
@@ -30,6 +35,12 @@ on:
     branches: [main]
   push:
     branches: [main]
+  schedule:
+    # Daily 06:17 UTC — govulncheck against an unchanged main still catches
+    # vulns *disclosed since the last push*. Odd minute per GitHub's guidance
+    # to avoid top-of-hour scheduler congestion. gitleaks is excluded from
+    # scheduled runs by its `if:` (its commit-range logic needs an event).
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -90,3 +101,29 @@ jobs:
             echo "Scanning pushed range: ${PUSH_BEFORE}..${PUSH_HEAD}"
             scan "${PUSH_BEFORE}..${PUSH_HEAD}"
           fi
+
+  # ===================================================================
+  # GO VULN SCAN — govulncheck. BLOCKING.
+  #
+  # Reports only vulnerabilities in code paths this module actually
+  # calls (call-graph analysis), so findings are low-noise and every
+  # one is actionable — which is why this starts blocking rather than
+  # informational, unlike the ratchet posture dep scanners need.
+  #
+  # Tool installed @latest deliberately, same stance as the scanner
+  # images above: govulncheck is Go-team-owned (golang.org/x/vuln) and
+  # the advisory DB (vuln.go.dev) is fetched fresh at runtime either
+  # way. Runs on PR, push, the daily schedule, and manual dispatch.
+  # ===================================================================
+  govuln:
+    name: govulncheck (Go vuln scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: govulncheck ./...
+        run: govulncheck ./...
