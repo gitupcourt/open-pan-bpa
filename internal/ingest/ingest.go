@@ -75,6 +75,27 @@ func (s Source) Transcript() string { return s.transcript }
 // Load reads the input file and returns the parsed XML root of the
 // configuration document.
 func Load(inputPath string) (*xmlnode.Node, Source, error) {
+	data, src, err := LoadRaw(inputPath)
+	if err != nil {
+		return nil, Source{}, err
+	}
+	root, err := xmlnode.Parse(strings.NewReader(string(data)))
+	if err != nil {
+		if src.entryName != "" {
+			return nil, Source{}, fmt.Errorf("%s: parsing %s: %w", inputPath, src.entryName, err)
+		}
+		return nil, Source{}, fmt.Errorf("parsing %s: %w", inputPath, err)
+	}
+	if root.Name != "config" {
+		return nil, Source{}, fmt.Errorf("%s: root element is <%s>, expected <config>", inputPath, root.Name)
+	}
+	return root, src, nil
+}
+
+// LoadRaw reads the input file and returns the raw bytes of the effective
+// configuration document (the file itself for XML input, the best config
+// candidate for a tech support archive) without parsing them.
+func LoadRaw(inputPath string) ([]byte, Source, error) {
 	f, err := os.Open(inputPath)
 	if err != nil {
 		return nil, Source{}, err
@@ -87,14 +108,11 @@ func Load(inputPath string) (*xmlnode.Node, Source, error) {
 		return loadTSF(f, inputPath)
 	}
 
-	root, err := xmlnode.Parse(io.LimitReader(f, maxConfigBytes))
+	data, err := io.ReadAll(io.LimitReader(f, maxConfigBytes))
 	if err != nil {
-		return nil, Source{}, fmt.Errorf("parsing %s: %w", inputPath, err)
+		return nil, Source{}, fmt.Errorf("reading %s: %w", inputPath, err)
 	}
-	if root.Name != "config" {
-		return nil, Source{}, fmt.Errorf("%s: root element is <%s>, expected <config>", inputPath, root.Name)
-	}
-	return root, Source{Path: inputPath, Kind: "xml"}, nil
+	return data, Source{Path: inputPath, Kind: "xml"}, nil
 }
 
 // gzipMagic is the two-byte gzip stream header.
@@ -105,11 +123,12 @@ const tarMagicOffset = 257
 
 var tarMagic = []byte("ustar")
 
-// loadTSF scans a tech support tarball for the best config candidate.
-// The archive format is detected from content, not the file name: browsers
-// and intercepting proxies routinely strip a download's gzip layer
-// (Content-Encoding) while keeping the .tgz name, leaving a plain tar.
-func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
+// loadTSF scans a tech support tarball for the best config candidate and
+// returns its raw bytes. The archive format is detected from content, not
+// the file name: browsers and intercepting proxies routinely strip a
+// download's gzip layer (Content-Encoding) while keeping the .tgz name,
+// leaving a plain tar.
+func loadTSF(f *os.File, inputPath string) ([]byte, Source, error) {
 	br := bufio.NewReader(f)
 	head, err := br.Peek(tarMagicOffset + len(tarMagic))
 	if err != nil && err != io.EOF {
@@ -188,11 +207,7 @@ func loadTSF(f *os.File, inputPath string) (*xmlnode.Node, Source, error) {
 	if bestData == nil {
 		return nil, Source{}, fmt.Errorf("%s: no running-config.xml found under saved-configs/ — is this a PAN-OS tech support file?", inputPath)
 	}
-	root, err := xmlnode.Parse(strings.NewReader(string(bestData)))
-	if err != nil {
-		return nil, Source{}, fmt.Errorf("%s: parsing %s: %w", inputPath, bestName, err)
-	}
-	return root, Source{Path: inputPath, Kind: "tsf", entryName: bestName, transcript: string(transcript)}, nil
+	return bestData, Source{Path: inputPath, Kind: "tsf", entryName: bestName, transcript: string(transcript)}, nil
 }
 
 func candidateRank(base string) int {
