@@ -169,6 +169,18 @@ func Run(cfg *model.Config, packs []Pack, reg Registry, toolVersion string) (*Re
 			rep.Summary.Checks++
 		}
 	}
+	// On Panorama inputs, device-scope findings evaluate Panorama's own
+	// configuration; name that location so its posture stands as a
+	// first-class row alongside the device groups and templates. Blank
+	// locations outside the device section (fleet-wide rulebase verdicts)
+	// stay blank deliberately.
+	if cfg.Panorama != nil {
+		for i := range rep.Findings {
+			if rep.Findings[i].Object.Section == "device" && rep.Findings[i].Object.Location == "" {
+				rep.Findings[i].Object.Location = "Panorama-local"
+			}
+		}
+	}
 	rep.Summary.FailBySev = map[string]int{}
 	objects := map[ObjectRef]bool{}
 	for _, f := range rep.Findings {
