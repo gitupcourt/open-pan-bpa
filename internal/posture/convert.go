@@ -76,6 +76,13 @@ func Convert(apiJSON []byte, packs []engine.Pack, hostname, inputPath, toolVersi
 					Name:     str(w.Configuration["name"]),
 					Location: str(w.Configuration["location"]),
 				}
+				// Panorama device-scope wrappers attribute via template_name
+				// (one wrapper per template/template-stack) instead of
+				// location. Without this, ~99 instances of every device
+				// check collapse into one indistinguishable location.
+				if obj.Location == "" {
+					obj.Location = str(w.Configuration["template_name"])
+				}
 				if u := str(w.Configuration["rule_uuid"]); u != "" {
 					obj.UUID = u
 				} else if u := str(w.Configuration["uuid"]); u != "" {
