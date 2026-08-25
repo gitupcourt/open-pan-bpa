@@ -123,6 +123,16 @@ func TestLicenseExpiry(t *testing.T) {
 			{Feature: "Expiring-Soon", Expires: now.AddDate(0, 0, 30)},
 			{Feature: "Healthy", Expires: now.AddDate(2, 0, 0)},
 			{Feature: "Perpetual", Never: true},
+			// Supersession: an expired support tier replaced by an active
+			// one (e.g. standalone tier folded into an enterprise
+			// agreement) is advisory, not a failure.
+			{Feature: "Platinum", Expired: true, Expires: now.AddDate(-2, 0, 0)},
+			{Feature: "Premium", Expires: now.AddDate(2, 0, 0)},
+			// Legacy subscription replaced by its Advanced successor.
+			{Feature: "Threat Prevention", Expired: true, Expires: now.AddDate(-1, 0, 0)},
+			{Feature: "Advanced Threat Prevention", Expires: now.AddDate(1, 0, 0)},
+			// Expired with NO active family coverage still fails.
+			{Feature: "PAN-DB URL Filtering", Expired: true, Expires: now.AddDate(-1, 0, 0)},
 		},
 	}
 	meta := engine.CheckMeta{Params: map[string]any{"warn_days": 90}}
@@ -131,10 +141,15 @@ func TestLicenseExpiry(t *testing.T) {
 		got[f.Object.Name] = f.Verdict
 	}
 	want := map[string]engine.Verdict{
-		"Expired-Sub":   engine.Fail,
-		"Expiring-Soon": engine.Fail,
-		"Healthy":       engine.Pass,
-		"Perpetual":     engine.Pass,
+		"Expired-Sub":                engine.Fail,
+		"Expiring-Soon":              engine.Fail,
+		"Healthy":                    engine.Pass,
+		"Perpetual":                  engine.Pass,
+		"Platinum":                   engine.Note,
+		"Premium":                    engine.Pass,
+		"Threat Prevention":          engine.Note,
+		"Advanced Threat Prevention": engine.Pass,
+		"PAN-DB URL Filtering":       engine.Fail,
 	}
 	for name, w := range want {
 		if got[name] != w {

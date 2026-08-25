@@ -341,6 +341,32 @@ func passwordComplexity(cfg *model.Config, meta engine.CheckMeta) []engine.Findi
 	return []engine.Finding{f}
 }
 
+// licenseFamily groups license feature names that cover the same function,
+// so an expired entry superseded by an active equivalent (a support tier
+// replaced under a newer agreement, or a legacy subscription replaced by its
+// Advanced successor) is advisory, not a failure. Returns "" for features
+// with no supersession family.
+func licenseFamily(feature string) string {
+	f := strings.ToLower(strings.TrimSpace(feature))
+	switch f {
+	case "premium", "platinum", "standard", "ultimate":
+		return "support"
+	}
+	switch {
+	case strings.Contains(f, "support"):
+		return "support"
+	case strings.Contains(f, "threat prevention"):
+		return "threat-prevention"
+	case strings.Contains(f, "url filtering"):
+		return "url-filtering"
+	case strings.Contains(f, "wildfire"):
+		return "wildfire"
+	case strings.Contains(f, "dns security"):
+		return "dns-security"
+	}
+	return ""
+}
+
 func licenseExpiry(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	if !cfg.LicenseInfoAvailable {
 		return []engine.Finding{{
@@ -351,13 +377,42 @@ func licenseExpiry(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	}
 	warnDays := paramInt(meta, "warn_days", 90)
 	now := time.Now()
+	// Active licenses per supersession family, for downgrading superseded
+	// expired/expiring entries to advisory notes. The supersessor must be a
+	// DIFFERENT entry that is itself healthy beyond the warning window.
+	familyActives := map[string][]model.License{}
+	for _, lic := range cfg.Licenses {
+		if lic.Expired {
+			continue
+		}
+		if fam := licenseFamily(lic.Feature); fam != "" {
+			familyActives[fam] = append(familyActives[fam], lic)
+		}
+	}
+	supersessor := func(fam, self string) string {
+		for _, a := range familyActives[fam] {
+			if a.Feature != self && (a.Never || !a.Expires.Before(now.AddDate(0, 0, warnDays))) {
+				return a.Feature
+			}
+		}
+		return ""
+	}
 	out := make([]engine.Finding, 0, len(cfg.Licenses))
 	for _, lic := range cfg.Licenses {
 		f := engine.Finding{
 			Object:  engine.ObjectRef{Section: "device", Feature: "licenses", Name: lic.Feature},
 			Verdict: engine.Pass,
 		}
+		fam := licenseFamily(lic.Feature)
+		super := ""
+		if fam != "" {
+			super = supersessor(fam, lic.Feature)
+		}
 		switch {
+		case lic.Expired && super != "":
+			f.Verdict = engine.Note
+			f.Message = fmt.Sprintf("License %q expired %s, but the active %q entitlement covers the same function (superseded — e.g. a tier replaced under a newer agreement). Retire the stale entry if it no longer applies.",
+				lic.Feature, lic.Expires.Format("2006-01-02"), super)
 		case lic.Expired:
 			f.Verdict = engine.Fail
 			f.Message = fmt.Sprintf("License %q expired %s; its protections and updates have stopped. Renew or retire the dependency on it.",
@@ -365,6 +420,12 @@ func licenseExpiry(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 			f.FailedFields = map[string]any{"expired": true, "expires": lic.Expires.Format("2006-01-02")}
 		case !lic.Never && lic.Expires.Before(now.AddDate(0, 0, warnDays)):
 			days := int(lic.Expires.Sub(now).Hours() / 24)
+			if super != "" {
+				f.Verdict = engine.Note
+				f.Message = fmt.Sprintf("License %q expires %s (%d days), but the active %q entitlement covers the same function; renewal may not be needed.",
+					lic.Feature, lic.Expires.Format("2006-01-02"), days, super)
+				break
+			}
 			f.Verdict = engine.Fail
 			f.Message = fmt.Sprintf("License %q expires %s (%d days). Renew before protections lapse.",
 				lic.Feature, lic.Expires.Format("2006-01-02"), days)
