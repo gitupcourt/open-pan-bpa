@@ -95,6 +95,14 @@ func BuildPanorama(root *xmlnode.Node) (*model.Config, error) {
 		for _, e := range shared.All("post-rulebase", "default-security-rules", "rules", "entry") {
 			cfg.DefaultRules = append(cfg.DefaultRules, parseSecurityRule(e, "shared"))
 		}
+		// Shared profile-groups and profiles are referenced by rules in
+		// every device group; without them, group-based profile adoption
+		// is invisible (reference-verified: rules adopting via a shared
+		// group count as adoption).
+		for _, e := range shared.Entries("profile-group") {
+			cfg.ProfileGroups = append(cfg.ProfileGroups, parseProfileGroup(e, "shared"))
+		}
+		parseProfiles(shared, "shared", cfg)
 	}
 
 	// Templates carry the device-scope config pushed to firewalls; each holds

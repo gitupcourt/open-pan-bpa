@@ -97,7 +97,11 @@ func haHeartbeat(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 
 func haTimers(cfg *model.Config, meta engine.CheckMeta) []engine.Finding {
 	f := engine.Finding{Object: haObject(meta), Verdict: engine.Pass}
-	if cfg.HAEnabled && cfg.HA.TimersMode != "recommended" {
+	// Reference-verified both ways: ABSENT timers fail (firewall and
+	// template-stack instances agree), and the explicit Advanced profile
+	// passes alongside Recommended (8 stack instances). Only an
+	// unspecified or otherwise-degraded setting fails.
+	if cfg.HAEnabled && cfg.HA.TimersMode != "recommended" && cfg.HA.TimersMode != "advanced" {
 		f.Verdict = engine.Fail
 		f.Message = "HA election timers are not set to Recommended; unvetted timer values cause flapping or slow failover."
 		f.FailedFields = map[string]any{"election-option.timers": orDefault(cfg.HA.TimersMode)}
