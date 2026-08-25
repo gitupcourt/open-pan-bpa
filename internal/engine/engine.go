@@ -156,16 +156,31 @@ func Run(cfg *model.Config, packs []Pack, reg Registry, toolVersion string) (*Re
 			if !ok {
 				return nil, fmt.Errorf("check %s references unknown evaluator %q", c.Slug, c.Evaluator)
 			}
-			findings := ev(cfg, c)
-			for i := range findings {
-				findings[i].Slug = c.Slug
-				findings[i].Title = c.Title
-				findings[i].Severity = c.Severity
-				if len(c.References) > 0 && findings[i].Verdict == Fail {
-					findings[i].References = c.References
+			stamp := func(findings []Finding, location string) {
+				for i := range findings {
+					findings[i].Slug = c.Slug
+					findings[i].Title = c.Title
+					findings[i].Severity = c.Severity
+					if len(c.References) > 0 && findings[i].Verdict == Fail {
+						findings[i].References = c.References
+					}
+					if location != "" {
+						findings[i].Object.Location = location
+					}
 				}
+				rep.Findings = append(rep.Findings, findings...)
 			}
-			rep.Findings = append(rep.Findings, findings...)
+			// Device-section checks evaluate once per device scope on
+			// Panorama inputs (Panorama-local + each template-stack) —
+			// managed devices receive this configuration per stack, so
+			// posture is per stack. License state is Panorama-global.
+			if len(cfg.DeviceScopes) > 0 && c.Section == "device" && c.Feature != "licenses" {
+				for _, sc := range cfg.DeviceScopes {
+					stamp(ev(sc.Cfg, c), sc.Name)
+				}
+			} else {
+				stamp(ev(cfg, c), "")
+			}
 			rep.Summary.Checks++
 		}
 	}

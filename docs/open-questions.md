@@ -64,6 +64,33 @@ Resolved entries move to the bottom with the verdict.
 | 13 | `ha-aa-*` (147/148) | Active/Active branch entirely unverified (all fixtures are A/P) | If an A/A lab pair is ever available; low priority |
 | 14 | `crypto` KEM asymmetry (358/359/376) | IKE profiles without AKE rounds pass; IPsec profiles without AKE fail (defaults are DH). Inferred from all-pass/all-fail split | Add a KEM AKE round to a lab IPsec profile → confirms the pass path |
 
+## Per-template-stack device evaluation (2026-08-28): calibration results
+
+Device-section checks now evaluate once per device scope on Panorama inputs
+(Panorama-local + each template-stack, members composed first-wins). Against
+a fleet reference report: 4,225 verdicts agree, every reference instance is
+covered, and the residual disagreements fall into these documented classes:
+
+- **External admin auth (92) — ours is deeper, deviation kept.** The
+  reference fails ~all stacks even when a high-priority member template
+  pushes admin accounts WITH authentication profiles; its stack evaluation
+  ignores mgt-config accounts, contradicting its own firewall behavior
+  (account-based, reference-verified). We evaluate the composed accounts.
+- **HA hardening on non-HA stacks — deviation kept.** The reference fails
+  HA hardening checks (timers, HA1 encryption, path/link groups, backup
+  links) on stacks that define no high-availability config at all — again
+  contradicting its own firewall behavior, where non-HA devices pass. Our
+  HA checks continue to apply only where HA is enabled.
+- **HA2 keep-alive / heartbeat-backup**: the long-standing firewall
+  deviations, now visible per stack.
+- **NTP redundancy (reference-verified semantics adopted)**: the check is
+  about REDUNDANCY — partial configuration (one server) fails; wholly
+  absent NTP passes the reference (68 stack instances). Adopted for the
+  default pack; a docs-strict variant should fail absent NTP.
+- **Template variables are not resolved** (~8 instances): a stack whose
+  NTP is `$NTP_SERVER_x` with per-stack variable values evaluates against
+  the literal; the reference resolves variables. Future enhancement.
+
 ## Reference-engine inconsistencies (documented deviations, not questions)
 
 - **HA2 keep-alive (145)**: two devices with byte-identical normalized

@@ -99,9 +99,11 @@ func BuildPanorama(root *xmlnode.Node) (*model.Config, error) {
 
 	// Templates carry the device-scope config pushed to firewalls; each holds
 	// a nested firewall-shaped <config> tree.
+	templateCfgs := map[string]*xmlnode.Node{}
 	for _, tmpl := range dev.Entries("template") {
 		name := tmpl.Attr("name")
 		cfg.Panorama.Templates = append(cfg.Panorama.Templates, name)
+		templateCfgs[name] = tmpl.First("config")
 		tdev := tmpl.First("config", "devices", "entry")
 		if tdev == nil {
 			continue
@@ -128,7 +130,43 @@ func BuildPanorama(root *xmlnode.Node) (*model.Config, error) {
 		})
 	}
 
+	// Device-evaluation scopes: Panorama's own device scope, plus one per
+	// template-stack with its member templates composed in priority order
+	// (first member wins per element path — the PAN-OS stack rule). The
+	// engine evaluates device-section checks once per scope, which is how
+	// managed devices actually receive this configuration.
+	cfg.DeviceScopes = append(cfg.DeviceScopes, model.DeviceScope{Name: "Panorama-local", Cfg: cfg})
+	for _, st := range cfg.Panorama.TemplateStacks {
+		merged := &xmlnode.Node{Name: "config"}
+		for _, tn := range st.Templates {
+			if tc := templateCfgs[tn]; tc != nil {
+				xmlnode.Overlay(merged, tc)
+			}
+		}
+		sc := buildDeviceScope(merged)
+		// The scope's hostname is what the STACK defines (usually a
+		// template variable or nothing) — never Panorama's own, which
+		// would make every stack pass hostname checks vacuously.
+		cfg.DeviceScopes = append(cfg.DeviceScopes, model.DeviceScope{Name: st.Name, Cfg: sc})
+	}
+
 	return cfg, nil
+}
+
+// buildDeviceScope parses the device-family collections out of a composed
+// template-stack config tree.
+func buildDeviceScope(root *xmlnode.Node) *model.Config {
+	sc := &model.Config{}
+	mdev := root.First("devices", "entry")
+	if mdev == nil {
+		mdev = &xmlnode.Node{Name: "entry"}
+	}
+	sc.Hostname = mdev.ChildText("deviceconfig", "system", "hostname")
+	parseDevice(mdev, &sc.Device)
+	parseMgtConfig(root.First("mgt-config"), &sc.Device)
+	parseDeviceObjects(root, mdev, sc)
+	parseNetworkObjects(mdev, sc)
+	return sc
 }
 
 // readonlyParents extracts device-group parent relationships from the

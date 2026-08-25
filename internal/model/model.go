@@ -51,6 +51,22 @@ type Config struct {
 	// (tech support files do; bare config XML exports cannot).
 	LicenseInfoAvailable bool
 	Licenses             []License
+
+	// DeviceScopes holds the per-scope device-evaluation views on a
+	// Panorama input: Panorama's own device scope plus one per
+	// template-stack (member templates composed in priority order). The
+	// engine evaluates device-section checks once per scope, mirroring how
+	// managed devices actually receive this configuration. Empty on
+	// firewall inputs.
+	DeviceScopes []DeviceScope
+}
+
+// DeviceScope is one device-evaluation scope on a Panorama input. Cfg is a
+// scoped view whose device-family collections come from this scope's
+// configuration alone.
+type DeviceScope struct {
+	Name string
+	Cfg  *Config
 }
 
 // AVDecoder is one protocol decoder row in an Antivirus profile. Empty action

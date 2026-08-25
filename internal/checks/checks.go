@@ -293,15 +293,20 @@ func ntpRedundant(cfg *model.Config, _ engine.CheckMeta) []engine.Finding {
 	obj := engine.ObjectRef{Section: "device", Feature: "device_setup_services"}
 	d := cfg.Device
 	f := engine.Finding{Object: obj, Verdict: engine.Pass}
+	// Reference-verified on template-stack scopes: the check is about
+	// REDUNDANCY — it fails only a partial configuration (one server set,
+	// the other empty). Wholly absent NTP passes the reference (68
+	// instances observed); the docs-strict pack variant is the place for
+	// a harder reading.
 	switch {
-	case d.NTPPrimary == "" && d.NTPSecondary == "":
-		f.Verdict = engine.Fail
-		f.Message = "No NTP servers configured; accurate time is required for log correlation, certificate validation, and scheduled updates."
-		f.FailedFields = map[string]any{"primary_ntp": "", "secondary_ntp": ""}
-	case d.NTPSecondary == "":
+	case d.NTPPrimary != "" && d.NTPSecondary == "":
 		f.Verdict = engine.Fail
 		f.Message = "Only a primary NTP server is configured. Configure a secondary NTP server for time-source redundancy."
 		f.FailedFields = map[string]any{"secondary_ntp": ""}
+	case d.NTPPrimary == "" && d.NTPSecondary != "":
+		f.Verdict = engine.Fail
+		f.Message = "Only a secondary NTP server is configured. Configure a primary NTP server for time-source redundancy."
+		f.FailedFields = map[string]any{"primary_ntp": ""}
 	}
 	return []engine.Finding{f}
 }

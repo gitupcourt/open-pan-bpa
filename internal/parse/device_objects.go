@@ -37,11 +37,13 @@ func parseDeviceObjects(root, dev *xmlnode.Node, cfg *model.Config) {
 	cfg.HAEnabled = yes(dev.ChildText("deviceconfig", "high-availability", "enabled"))
 
 	// Server profiles + shared objects live under <shared> (and occasionally
-	// per-vsys; shared covers the fleet configs seen so far).
+	// per-vsys; shared covers the fleet configs seen so far). On Panorama,
+	// the appliance's own profiles live under the top-level <panorama>
+	// element instead.
 	scopes := []struct {
 		node     *xmlnode.Node
 		location string
-	}{{root.First("shared"), "shared"}}
+	}{{root.First("shared"), "shared"}, {root.First("panorama"), "panorama"}}
 	for _, vsys := range dev.Entries("vsys") {
 		scopes = append(scopes, struct {
 			node     *xmlnode.Node
@@ -118,13 +120,22 @@ func parseDeviceObjects(root, dev *xmlnode.Node, cfg *model.Config) {
 				ProfileCount: len(e.Members("authentication-profiles")),
 			})
 		}
-		// Shared system/config log forwarding.
+		// Shared system/config log forwarding — and syslog server profiles,
+		// which live under log-settings in Panorama and template scopes
+		// (server-profile/syslog is the firewall-local encoding).
 		if ls := scope.node.First("log-settings"); ls != nil {
 			for _, m := range ls.All("system", "match-list", "entry") {
 				cfg.SystemLogMatches = append(cfg.SystemLogMatches, simpleMatch(m))
 			}
 			for _, m := range ls.All("config", "match-list", "entry") {
 				cfg.ConfigLogMatches = append(cfg.ConfigLogMatches, simpleMatch(m))
+			}
+			for _, e := range ls.Entries("syslog") {
+				p := model.ServerProfile{Name: e.Attr("name"), Location: scope.location, Kind: "syslog", ServerCount: len(e.Entries("server"))}
+				for _, srv := range e.Entries("server") {
+					p.Transports = append(p.Transports, srv.ChildText("transport"))
+				}
+				cfg.ServerProfiles = append(cfg.ServerProfiles, p)
 			}
 		}
 	}
