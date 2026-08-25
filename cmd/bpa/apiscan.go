@@ -69,6 +69,9 @@ func runAPIScan(args []string) error {
 
 	fmt.Fprintf(os.Stderr, "NOTE: api-scan UPLOADS this configuration to Palo Alto Networks' hosted service\n")
 	fmt.Fprintf(os.Stderr, "      (%d KB from %s). For a fully offline assessment use `bpa scan`.\n", len(configXML)/1024, filepath.Base(src.Path))
+	if !*deleteAfter {
+		fmt.Fprintln(os.Stderr, "      Tip: --delete-after-processing asks the service to delete the config once the report is generated.")
+	}
 
 	token, err := posture.Token(creds)
 	if err != nil {
@@ -95,7 +98,8 @@ func runAPIScan(args []string) error {
 	if err != nil {
 		return err
 	}
-	rep, err := posture.Convert(apiJSON, loaded, host, filepath.Base(src.Path), version, !*noCorrections)
+	rep, err := posture.Convert(apiJSON, loaded, host, filepath.Base(src.Path), version, !*noCorrections,
+		func(format string, a ...any) { fmt.Fprintf(os.Stderr, "      "+format+"\n", a...) })
 	if err != nil {
 		return err
 	}

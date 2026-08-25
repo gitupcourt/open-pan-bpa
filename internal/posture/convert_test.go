@@ -77,7 +77,7 @@ func find(t *testing.T, rep *engine.Report, slug, object string) engine.Finding 
 }
 
 func TestConvert(t *testing.T) {
-	rep, err := Convert([]byte(fixture), testPacks(), "unit-fw", "in.json", "test", true)
+	rep, err := Convert([]byte(fixture), testPacks(), "unit-fw", "in.json", "test", true, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestConvert(t *testing.T) {
 }
 
 func TestConvertNoCorrections(t *testing.T) {
-	rep, err := Convert([]byte(fixture), testPacks(), "unit-fw", "in.json", "test", false)
+	rep, err := Convert([]byte(fixture), testPacks(), "unit-fw", "in.json", "test", false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

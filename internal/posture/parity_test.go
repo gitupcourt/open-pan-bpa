@@ -38,7 +38,7 @@ func TestConvertRealReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rep, err := Convert(data, loaded, "fixture", filepath.Base(found), "test", true)
+	rep, err := Convert(data, loaded, "fixture", filepath.Base(found), "test", true, t.Logf)
 	if err != nil {
 		t.Skipf("fixture %s is not an API report: %v", filepath.Base(found), err)
 	}

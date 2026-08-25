@@ -17,7 +17,10 @@ import (
 // engine's semantics). Check identity maps to catalog slugs through
 // pan_bpa_ids; unmapped checks pass through as pan-api-<id> with the API's
 // own text, so nothing is dropped.
-func Convert(apiJSON []byte, packs []engine.Pack, hostname, inputPath, toolVersion string, corrections bool) (*engine.Report, error) {
+func Convert(apiJSON []byte, packs []engine.Pack, hostname, inputPath, toolVersion string, corrections bool, logf func(string, ...any)) (*engine.Report, error) {
+	if logf == nil {
+		logf = func(string, ...any) {}
+	}
 	var api struct {
 		BestPractices map[string]map[string]json.RawMessage `json:"best_practices"`
 		Information   struct {
@@ -118,7 +121,7 @@ func Convert(apiJSON []byte, packs []engine.Pack, hostname, inputPath, toolVersi
 	if rep.Summary.Checks == 0 {
 		return nil, fmt.Errorf("API report contained no checks")
 	}
-	fmt.Printf("converted %d findings (%d slug-mapped, %d pan-api-* passthrough)\n", len(rep.Findings), mapped, unmapped)
+	logf("converted %d findings (%d slug-mapped, %d pan-api-* passthrough)", len(rep.Findings), mapped, unmapped)
 	return rep, nil
 }
 
@@ -266,11 +269,11 @@ func normTitle(s string) string {
 }
 
 func slugify(s string) string {
-	s = normTitle(s)
-	if len(s) > 40 {
-		s = s[:40]
+	r := []rune(normTitle(s)) // rune slice: a byte cut could split UTF-8
+	if len(r) > 40 {
+		r = r[:40]
 	}
-	return strings.ReplaceAll(strings.TrimSpace(s), " ", "-")
+	return strings.ReplaceAll(strings.TrimSpace(string(r)), " ", "-")
 }
 
 func str(v any) string {

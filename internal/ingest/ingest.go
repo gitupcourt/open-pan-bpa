@@ -81,11 +81,10 @@ func Load(inputPath string) (*xmlnode.Node, Source, error) {
 	}
 	root, err := xmlnode.Parse(strings.NewReader(string(data)))
 	if err != nil {
-		name := src.entryName
-		if name == "" {
-			name = inputPath
+		if src.entryName != "" {
+			return nil, Source{}, fmt.Errorf("%s: parsing %s: %w", inputPath, src.entryName, err)
 		}
-		return nil, Source{}, fmt.Errorf("%s: parsing %s: %w", inputPath, name, err)
+		return nil, Source{}, fmt.Errorf("parsing %s: %w", inputPath, err)
 	}
 	if root.Name != "config" {
 		return nil, Source{}, fmt.Errorf("%s: root element is <%s>, expected <config>", inputPath, root.Name)

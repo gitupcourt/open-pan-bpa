@@ -195,6 +195,10 @@ func Fetch(token string, configXML []byte, opts Options) ([]byte, error) {
 			case "FAILED":
 				return nil, fmt.Errorf("processing failed: %s\n%s", poll.Message, trunc(body, 1500))
 			}
+		} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
+			// Token lifetime (~15 min) can be shorter than a long poll;
+			// spinning here would silently burn the whole timeout.
+			return nil, fmt.Errorf("token rejected while polling (HTTP %d) — it may have expired; rerun to re-authenticate", resp.StatusCode)
 		} else if resp.StatusCode != 404 {
 			opts.logf("transient HTTP %d, retrying", resp.StatusCode)
 		}
@@ -214,7 +218,9 @@ func downloadReport(result map[string]any, opts Options) ([]byte, error) {
 	}
 	for _, key := range ordered {
 		u, ok := result[key].(string)
-		if !ok || !strings.HasPrefix(u, "http") {
+		// https only: the derived report must never travel cleartext, even
+		// if the service were ever to hand back an http:// URL.
+		if !ok || !strings.HasPrefix(u, "https://") {
 			continue
 		}
 		resp, err := httpClient.Get(u)
@@ -222,6 +228,8 @@ func downloadReport(result map[string]any, opts Options) ([]byte, error) {
 			opts.logf("download of %s failed: %v; trying next", key, err)
 			continue
 		}
+		// The cap is deliberately far above the poll/auth limits: real
+		// fleet-scale (Panorama) reports run ~100 MB of JSON.
 		body, err := io.ReadAll(io.LimitReader(resp.Body, 512<<20))
 		resp.Body.Close()
 		if err != nil || resp.StatusCode != 200 {
