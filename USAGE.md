@@ -97,6 +97,13 @@ The scan prints a one-line summary and writes `bpa-<hostname>.<ext>` files:
 Severities (`critical`, `high`, `warning`, `informational`) rank how much a
 `fail` matters; fix criticals first.
 
+Every check cites the Palo Alto Networks documentation it implements: the
+`[doc N]` links in the HTML report (on the check row and on each fail/note
+finding), the `references` field in the JSON, and the `references` column in
+the CSV all point at the specific pages on
+[docs.paloaltonetworks.com](https://docs.paloaltonetworks.com). The
+`rationale` for each check ships in the pack YAML.
+
 ## 5. Custom check packs
 
 Copy the embedded pack as a starting point (see `packs/core.yaml` in the

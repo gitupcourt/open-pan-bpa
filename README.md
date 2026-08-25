@@ -34,6 +34,31 @@ See [USAGE.md](USAGE.md) for the full guide: getting binaries, generating
 input files on the firewall, output formats, verdict semantics, and custom
 check packs.
 
+## Where the best practices come from
+
+None of the check criteria are invented here. Every one of the checks is
+grounded in **Palo Alto Networks' publicly available documentation** — the
+[Best Practices portal](https://docs.paloaltonetworks.com/best-practices) and
+the product administration guides on
+[docs.paloaltonetworks.com](https://docs.paloaltonetworks.com):
+
+- **Every check carries `references`** — the specific doc page(s) it
+  implements — in its YAML pack definition, in the JSON/CSV output, and as
+  clickable `[doc N]` links in the HTML report next to each check and each
+  failing finding. If you want to verify why a check says what it says, the
+  primary source is one click away.
+- **Every check carries a `rationale`** explaining the risk in plain terms.
+- A test enforces this: a check without documentation references or a
+  rationale does not build.
+- Vendor doc URLs move; a weekly automated link-health scan verifies every
+  reference still resolves and flags redirects so links stay canonical.
+- The check *text* is independently written from those public sources — no
+  vendor report content is reproduced.
+
+Where current documentation is ambiguous, semantics are settled by observed
+assessment behavior and the discrepancy is recorded in
+[docs/open-questions.md](docs/open-questions.md) rather than guessed at.
+
 ## Design
 
 - Checks are **declarative YAML packs** (embedded in the binary, overridable with
