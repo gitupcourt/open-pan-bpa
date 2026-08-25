@@ -25,6 +25,7 @@ func Convert(apiJSON []byte, packs []engine.Pack, hostname, inputPath, toolVersi
 		BestPractices map[string]map[string]json.RawMessage `json:"best_practices"`
 		Information   struct {
 			LastUpdatedTime string `json:"last_updated_time"`
+			Platform        string `json:"platform"`
 		} `json:"information"`
 	}
 	if err := json.Unmarshal(apiJSON, &api); err != nil {
@@ -82,6 +83,13 @@ func Convert(apiJSON []byte, packs []engine.Pack, hostname, inputPath, toolVersi
 				// check collapse into one indistinguishable location.
 				if obj.Location == "" {
 					obj.Location = str(w.Configuration["template_name"])
+				}
+				// What remains blank on a Panorama input is Panorama's own
+				// device scope — name it so its posture stands as a
+				// first-class row next to the template stacks.
+				if obj.Location == "" && section == "device" &&
+					strings.EqualFold(api.Information.Platform, "panorama") {
+					obj.Location = "Panorama-local"
 				}
 				if u := str(w.Configuration["rule_uuid"]); u != "" {
 					obj.UUID = u
