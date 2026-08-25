@@ -26,13 +26,14 @@ func WriteJSON(w io.Writer, rep *engine.Report) error {
 // WriteCSV emits one row per finding.
 func WriteCSV(w io.Writer, rep *engine.Report) error {
 	cw := csv.NewWriter(w)
-	if err := cw.Write([]string{"slug", "title", "severity", "verdict", "section", "feature", "object", "location", "message"}); err != nil {
+	if err := cw.Write([]string{"slug", "title", "severity", "verdict", "section", "feature", "object", "location", "message", "references"}); err != nil {
 		return err
 	}
 	for _, f := range rep.Findings {
 		if err := cw.Write([]string{
 			f.Slug, f.Title, string(f.Severity), string(f.Verdict),
 			f.Object.Section, f.Object.Feature, f.Object.Name, f.Object.Location, f.Message,
+			strings.Join(f.References, " "),
 		}); err != nil {
 			return err
 		}
