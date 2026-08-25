@@ -91,6 +91,26 @@ covered, and the residual disagreements fall into these documented classes:
   NTP is `$NTP_SERVER_x` with per-stack variable values evaluates against
   the literal; the reference resolves variables. Future enhancement.
 
+Second calibration round (fleet reference comparison in the harness,
+51,498 verdicts):
+
+- **Device-group ancestor inheritance (reference-verified, adopted)**:
+  rulebase checks evaluate the EFFECTIVE rulebase — shared + every
+  ancestor group's rules + own. The reference passes child groups whose
+  parent carries the adopting rule.
+- **Shared profile-groups and shared profiles were not parsed on
+  Panorama** — a major correctness fix: rules adopting protection via a
+  shared profile group were invisible, over-failing thousands of per-rule
+  profile findings. Now parsed.
+- **HA election timers (reference-verified both ways)**: absent timers
+  FAIL (firewall and stack instances agree); the explicit Advanced
+  profile passes alongside Recommended.
+- **Registry drift (2026-08)**: the current hosted registry fails explicit
+  "default" antivirus decoder actions on ftp/http/http2/smb, which the
+  earlier registry (and our fixture references) passed. Our semantics
+  flip is PENDING fresh firewall references; tracked as a harness
+  deviation class until then.
+
 ## Reference-engine inconsistencies (documented deviations, not questions)
 
 - **HA2 keep-alive (145)**: two devices with byte-identical normalized

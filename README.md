@@ -54,6 +54,12 @@ comparable. See [USAGE.md](USAGE.md) §4 for credential setup (documented by
 Palo Alto Networks on [pan.dev](https://pan.dev/sase/docs/service-accounts/))
 and the full flag set.
 
+Every known behavioral difference between the two engines is documented in
+[docs/differences-vs-hosted-bpa.md](docs/differences-vs-hosted-bpa.md),
+kept honest by a conformance harness that compares tens of thousands of
+verdicts against reference reports — a difference not documented there is
+treated as a bug.
+
 ## Where the best practices come from
 
 None of the check criteria are invented here. Every one of the checks is

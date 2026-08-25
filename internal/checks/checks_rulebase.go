@@ -112,10 +112,26 @@ func policyScopes(cfg *model.Config) []policyScope {
 			sharedDefaults = append(sharedDefaults, r)
 		}
 	}
+	byName := map[string]model.DeviceGroup{}
+	for _, dg := range cfg.Panorama.DeviceGroups {
+		byName[dg.Name] = dg
+	}
 	var out []policyScope
 	for _, dg := range cfg.Panorama.DeviceGroups {
 		s := policyScope{Location: dg.Name}
 		s.Rules = append(s.Rules, shared...)
+		// A device group's EFFECTIVE rulebase includes every ancestor's
+		// rules (reference-verified: adoption checks pass child groups
+		// whose parent carries the adopting rule). Outermost ancestor
+		// first approximates device rule order; existence-style checks
+		// are order-insensitive either way.
+		ancs := cfg.Panorama.Ancestors(dg.Name)
+		for i := len(ancs) - 1; i >= 0; i-- {
+			a := byName[ancs[i]]
+			s.Rules = append(s.Rules, a.PreRules...)
+			s.Rules = append(s.Rules, a.PostRules...)
+			s.DefaultRules = append(s.DefaultRules, a.DefaultRules...)
+		}
 		s.Rules = append(s.Rules, dg.PreRules...)
 		s.Rules = append(s.Rules, dg.PostRules...)
 		s.DefaultRules = append(s.DefaultRules, sharedDefaults...)
