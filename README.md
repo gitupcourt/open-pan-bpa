@@ -19,8 +19,9 @@ non-starter. `open-pan-bpa` evaluates best-practice checks **entirely offline**:
 
 - **Input:** a PAN-OS tech support file (`.tgz`) or an exported XML
   configuration — from a firewall or from Panorama.
-- **Engine:** a single static binary. No container runtime, no Python, no network
-  access — copy it to a jump box and run it.
+- **Engine:** a single static binary. No container runtime, no Python — copy
+  it to a jump box and run it. `bpa scan` performs no network I/O under any
+  circumstances.
 - **Output:** self-contained HTML report, versioned JSON, and CSV.
 
 ## Quick start
@@ -33,6 +34,25 @@ bpa scan running-config.xml --format json,html,csv
 See [USAGE.md](USAGE.md) for the full guide: getting binaries, generating
 input files on the firewall, output formats, verdict semantics, and custom
 check packs.
+
+## Two engines, one report format
+
+For environments where uploading the configuration is acceptable, the binary
+can alternatively submit it to **Palo Alto Networks' official hosted BPA
+(posture) API** and report *their* engine's verdicts in the same formats:
+
+```
+bpa api-scan techsupport.tgz --out report/
+```
+
+`api-scan` is a **separate subcommand by design** — the offline guarantee of
+`scan` is absolute and shares no code path with it. It states loudly that it
+uploads the config before doing so, takes credentials from environment
+variables only, and supports the API's server-side config deletion flag.
+Both modes emit the same schema-versioned report, so results are directly
+comparable. See [USAGE.md](USAGE.md) §4 for credential setup (documented by
+Palo Alto Networks on [pan.dev](https://pan.dev/sase/docs/service-accounts/))
+and the full flag set.
 
 ## Where the best practices come from
 

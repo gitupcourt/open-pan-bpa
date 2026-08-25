@@ -25,8 +25,10 @@ sha256sum -c checksums.txt --ignore-missing
 Building from source instead: install Go 1.24+, then `go build ./cmd/bpa`.
 
 For air-gapped use, transfer the verified archive by your approved media
-process. The binary makes zero network calls at runtime, so it can run
-directly on a management jump box.
+process. `bpa scan` makes zero network calls under any circumstances, so it
+can run directly on a management jump box. (The one deliberately-online
+subcommand, `api-scan`, is described in section 4 — it is a separate command
+precisely so `scan`'s offline guarantee stays absolute.)
 
 ## 2. Get an input file
 
@@ -85,7 +87,51 @@ The scan prints a one-line summary and writes `bpa-<hostname>.<ext>` files:
   the stable contract for automation and integrations.
 - **`.csv`** — one row per finding, for spreadsheets.
 
-## 4. Read the verdicts
+## 4. Or: assess with Palo Alto Networks' hosted engine (`api-scan`)
+
+```
+bpa api-scan techsupport.tgz --out report/
+```
+
+`api-scan` submits the configuration to **Palo Alto Networks' official
+hosted BPA (posture) API** and reports *their* engine's verdicts in the same
+output formats. It is the one deliberately-online mode in the binary:
+
+- **It uploads your configuration** to the vendor's service, and says so
+  before any network activity. If that's not acceptable, use `bpa scan` —
+  which never touches the network.
+- Credentials come from environment variables only (never flags):
+  `PANW_CLIENT_ID`, `PANW_CLIENT_SECRET`, `PANW_TSG_ID` — an SCM service
+  account with an SCM role on your TSG. Setup is documented by Palo Alto
+  Networks: [get started](https://pan.dev/sase/docs/getstarted/) (TSG),
+  [service accounts](https://pan.dev/sase/docs/service-accounts/), and the
+  [Posture/BPA API](https://pan.dev/scm/api/config/posture-management/introduction-posture/)
+  itself.
+- `--delete-after-processing` asks the service to delete the uploaded
+  configuration once the report is generated.
+
+Additional flags beyond the `scan` set:
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--hostname NAME` | auto-detected | Hostname for the report |
+| `--keep-api-json` | off | Also write the raw API report JSON |
+| `--no-corrections` | off | Report the API's raw verdicts without the scope/disabled/predefined reclassifications below |
+| `--delete-after-processing` | off | Server-side config deletion after processing |
+| `--timeout` / `--interval` | 15m / 10s | API polling limits |
+
+Results use the same verdict vocabulary as the offline engine: allow-scoped
+checks on non-allow rules report `n/a`, and failing checks on disabled rules
+or predefined read-only objects downgrade to `note`. Checks are mapped to
+this tool's check identities (slugs) where a cross-reference exists;
+unmapped checks appear as `pan-api-<id>` with the API's own wording, so
+nothing the vendor's engine reported is dropped. Reports carry
+`input_kind: "api"` so the two modes are always distinguishable.
+
+Since both modes emit the same schema, `bpa render` and downstream tooling
+treat their reports identically.
+
+## 5. Read the verdicts
 
 | Verdict | Meaning |
 |---|---|
@@ -104,14 +150,14 @@ the CSV all point at the specific pages on
 [docs.paloaltonetworks.com](https://docs.paloaltonetworks.com). The
 `rationale` for each check ships in the pack YAML.
 
-## 5. Custom check packs
+## 6. Custom check packs
 
 Copy the embedded pack as a starting point (see `packs/core.yaml` in the
 source tree), edit thresholds or drop checks, and run with `--packs ./mypacks`.
 Every check needs a unique `slug`; params like `min_length` are tunable per
 your policy. The pack format is YAML and validated on load.
 
-## 6. Exit codes
+## 7. Exit codes
 
 | Code | Meaning |
 |---|---|
