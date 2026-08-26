@@ -13,12 +13,29 @@ Resolved entries move to the bottom with the verdict.
 | # | Check(s) | What we assume today | Lab config that settles it |
 |---|---|---|---|
 | 1b | `uf-cred-logging` (346) | A credential-submission category set to **allow** fails | Set one credential-submission category to Allow on any URL profile; re-run reference. (Site-access half — 196 — is RESOLVED: allow entries fail, custom categories included.) |
-| 3 | `uf-block-liability` / `uf-cred-liability` (340/344) | Liability list is exactly: abused-drugs, adult, copyright-infringement, extremism, gambling, peer-to-peer, questionable, weapons | **Must be tested on the PASSING profile**: remove `copyright-infringement` from the block + credential-block lists of `AI Block redirect` (currently passes 340/344) and re-run. Still passes → the list is smaller than docs; fails → list confirmed. Adding the category to an already-failing profile (tried 2026-08-03) cannot discriminate — the reference's failed_fields echo the current list, not the missing set. |
-| 4 | `du-sync-peer-*` (191/192) | Non-HA devices pass trivially; HA devices need sync-to-peer **yes** | Confirmed direction on HA homegateways; the non-HA branch is unverified (PA-220 had no reference coverage here) |
+| 4 | `du-sync-peer-*` (191/192) | Non-HA devices pass trivially; HA devices need sync-to-peer **yes** | The yes-case re-confirmed 2026-08-26; the non-HA branch remains unverified (the lab device carries an HA element, so it never exercises that branch) |
 | 8 | `dev-telemetry-sharing` (197) | Fails only when every telemetry setting is explicitly "no" | Disable all telemetry options; re-run reference |
 | 11 | `zpp-packet-attack` (87) | Element names now GROUNDED from IronSkillet + field configs (`discard-malformed-option`, `discard-overlapping-tcp-segment-mismatch`, `remove-tcp-timestamp`); only the pass path is unverified (every fixture fails all three) | Enable the three protections in a lab Zone Protection profile → confirms the reference passes when they're set (and whether it wants more) |
-| 15 | `wf-forward-everything` (47) | Direction is NOT enforced (upload-only passes); download-only still unverified | Download-only rule IS configured (2026-08-18 config); awaiting reference re-run |
 | 16 | AID EDLs (398–409) | **License linkage is SETTLED** (operator-confirmed; the six check titles match the six documented Advanced IP Defense lists one-to-one). Remaining: two literal strings — the config object identifiers used in rules, and the license Feature string from the license inventory. Mismatch fails safe (a licensed+enforced device would show fail instead of pass, never a silent pass). | Any TSF from a device with the Advanced IP Defense license grounds both strings |
+
+## Resolved 2026-08-26 (fresh lab reference — first phantom-free pair)
+
+- **Item 3 — liability category list (340/344): CONFIRMED.** Removing
+  `copyright-infringement` from the previously-passing profile's block and
+  credential-block lists makes the reference FAIL both checks — the
+  docs-derived eight-category list is exactly right, and our check agreed
+  (0 mismatches on the pair).
+- **Item 15 — WildFire download-only (47): CONFIRMED not enforced.** A
+  download-only any/any rule passes the reference, completing the
+  direction question (upload-only was confirmed earlier). Direction is
+  simply not part of the check.
+- The nine stale-pair phantom mismatches (sync-to-peer, system log
+  forwarding, cert trust-split, liability) all resolved with the fresh
+  pair — every one was config drift between TSF and reference vintages.
+- The AV default-decoder registry drift could not be discriminated on
+  this device (its profiles set every decoder to `default`, which both
+  registry vintages fail); the pending flip still rests on the fleet
+  evidence alone.
 
 ## Resolved 2026-08-18
 

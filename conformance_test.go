@@ -88,7 +88,9 @@ type refKey struct{ feature, location, name string }
 type refVerdicts struct {
 	verdicts map[refKey]map[int]bool
 	locCount map[[2]string][]string // (feature, name) -> locations seen
-	source   string                 // file name, for newest-wins selection
+	source   string                 // file name, for logging
+	modTime  int64                  // for newest-wins selection (file names
+	// from different producers are not lexically comparable)
 }
 
 // refSerialRe pulls the device serial out of reference file names
@@ -156,16 +158,19 @@ func loadReferenceReports(t *testing.T, dir string) (byHost, bySerial map[string
 			tag = "serial " + serial
 		}
 		t.Logf("reference loaded: %s <- %s (%d objects)", tag, filepath.Base(path), len(rv.verdicts))
-		// Multiple reports for one device: the newest wins. File names embed
-		// a sortable timestamp (bpa_<serial>_<YYYYMMDD-HHMMSS>.json).
+		// Multiple reports for one device: the newest wins, by file
+		// modification time.
 		rv.source = filepath.Base(path)
+		if fi, err := d.Info(); err == nil {
+			rv.modTime = fi.ModTime().Unix()
+		}
 		if rep.Information.Hostname != "" {
-			if prev := byHost[rep.Information.Hostname]; prev == nil || prev.source < rv.source {
+			if prev := byHost[rep.Information.Hostname]; prev == nil || prev.modTime < rv.modTime {
 				byHost[rep.Information.Hostname] = rv
 			}
 		}
 		if serial != "" {
-			if prev := bySerial[serial]; prev == nil || prev.source < rv.source {
+			if prev := bySerial[serial]; prev == nil || prev.modTime < rv.modTime {
 				bySerial[serial] = rv
 			}
 		}
