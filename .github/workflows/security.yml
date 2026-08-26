@@ -2,33 +2,29 @@ name: security
 
 # AppSec CI security gates for open-pan-bpa.
 #
-# Phase-0 posture (private repo, pre-scaffold): the one gate that matters
-# before any code or fixtures land is SECRET / DATA-LEAK detection. This
-# project's primary risk is a config or tech-support file getting committed
-# (see SECURITY.md + .gitleaks.toml). gitleaks is BLOCKING from the first PR.
+# The gate that matters most for this project is SECRET / DATA-LEAK
+# detection: the primary risk is a config or tech-support file getting
+# committed (see SECURITY.md + .gitleaks.toml). gitleaks has been BLOCKING
+# since the first PR.
 #
-# Deferred to later increments (each needs Go code and/or public visibility):
-#   - govulncheck (Go vuln scan)              -> ACTIVE below (blocking; daily
-#                                                schedule catches newly-disclosed
-#                                                vulns against unchanged code)
-#   - gosec (Go SAST)                         -> follow-up increment (needs a
-#                                                version-pin + baseline-triage
-#                                                decision; see appsec#8)
-#   - Dependabot gomod                        -> activates when go.mod lands
-#   - CodeQL (Go)                             -> at go-public (code scanning on a
-#                                                private repo needs GitHub Advanced
-#                                                Security)
-#   - Blocking required-check ruleset         -> at go-public (branch protection /
-#                                                rulesets need a paid plan on
-#                                                private repos)
-# Until the required-check ruleset is available this gate runs and reports on
-# every PR but is enforced by PR discipline, matching homelab/appsec today.
+# Current posture (repo is public):
+#   - gitleaks (secret scan)   -> blocking, required check on main
+#   - govulncheck (Go vuln)    -> blocking, required check on main; the daily
+#                                 schedule catches newly-disclosed vulns
+#                                 against unchanged code
+#   - required-check ruleset   -> ACTIVE on main (test + gitleaks + govulncheck),
+#                                 with PR-only merges and force-push/deletion
+#                                 blocked
+#   - CodeQL (Go)              -> default setup enabled repo-side
+#   - Dependabot               -> gomod + github-actions, weekly
+#   - gosec (Go SAST)          -> still a follow-up increment (needs a
+#                                 version-pin + baseline-triage decision)
 #
 # gitleaks runs from its official container image directly (not the
-# license-gated Action), so it works on this private user-account repo with no
-# GITLEAKS_LICENSE. Scanner image is pulled at :latest deliberately — for a
-# secret scanner you want the freshest ruleset each run; the scanned target
-# (our code) is pinned by the checkout SHA.
+# license-gated Action), so no GITLEAKS_LICENSE is needed. Scanner image is
+# pulled at :latest deliberately — for a secret scanner you want the
+# freshest ruleset each run; the scanned target (our code) is pinned by the
+# checkout SHA.
 
 on:
   pull_request:
@@ -54,8 +50,7 @@ concurrency:
 
 jobs:
   # ===================================================================
-  # SECRETS / DATA-LEAK — gitleaks. BLOCKING. This is the job to add to
-  # the required-check ruleset once the repo is public.
+  # SECRETS / DATA-LEAK — gitleaks. BLOCKING; required check on main.
   #
   # Scan scope is commit-range-bound, not full-history:
   #   - on a PR:        scan base..head (the PR's own commits)
