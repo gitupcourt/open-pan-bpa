@@ -8,6 +8,6 @@ go 1.24
 // crypto/tls and html/template fixes below shipped in 1.26.9). CI +
 // releases resolve this via GOTOOLCHAIN=auto; keep it at a patch level
 // govulncheck reports clean.
-toolchain go1.26.9
+toolchain go1.26.10
 
 require gopkg.in/yaml.v3 v3.0.1
